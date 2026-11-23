@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { User, Phone, MapPin, Camera, Save, Sparkles } from "lucide-react";
+import { User, Phone, MapPin, Camera, Save } from "lucide-react";
+import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,36 +13,60 @@ import { toast } from "sonner";
 
 export default function CustomerProfileSettingsPage() {
   const { data: session } = useSession();
+  const user = session?.user;
   const [submitting, setSubmitting] = React.useState(false);
 
   const [formData, setFormData] = React.useState({
-    name: "Sophia Montgomery",
-    email: "sophia.montgomery@example.com",
-    phone: "+1 (555) 234-8891",
-    city: "New York, NY",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
-    bio: "Bride-to-be planning our dream autumn wedding ceremony and reception in Central Park."
+    name: "",
+    email: "",
+    phone: "",
+    city: "",
+    image: "",
+    bio: ""
   });
 
   React.useEffect(() => {
-    if (session?.user) {
-      queueMicrotask(() => {
-        setFormData((prev) => ({
-          ...prev,
-          name: session.user.name || prev.name,
-          email: session.user.email || prev.email,
-          image: session.user.image || prev.image
-        }));
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        city: user.location || "",
+        image: user.image || "",
+        bio: user.bio || ""
       });
     }
-  }, [session]);
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) return;
     setSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      toast.success("Profile settings updated successfully!");
+      let token = getStoredToken();
+      if (!token) {
+        token = await fetchAuthToken(user);
+      }
+      const userId = user.id || user._id;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/users/profile/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          image: formData.image,
+          phone: formData.phone,
+          location: formData.city,
+          bio: formData.bio
+        })
+      });
+      if (res.ok) {
+        toast.success("Profile settings updated successfully!");
+      } else {
+        toast.error("Failed to update profile settings");
+      }
     } catch {
       toast.error("Failed to update profile settings");
     } finally {
@@ -59,7 +84,7 @@ export default function CustomerProfileSettingsPage() {
           Customer Profile Settings
         </h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Update your bridal contact information, location, and wedding vision bio.
+          Manage your contact credentials and wedding planning identity.
         </p>
       </div>
 
@@ -70,17 +95,17 @@ export default function CustomerProfileSettingsPage() {
               {formData.image ? (
                 <Image
                   src={formData.image}
-                  alt={formData.name}
+                  alt={formData.name || "Customer"}
                   fill
                   className="object-cover"
                 />
               ) : (
-                <span>{formData.name[0]}</span>
+                <span>{(formData.name || "C")[0]}</span>
               )}
             </div>
             <div className="flex-1 w-full space-y-2">
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                Profile Image URL
+                Profile Photo URL
               </label>
               <div className="relative">
                 <Camera className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -130,7 +155,7 @@ export default function CustomerProfileSettingsPage() {
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Current City / Region
+              Event / Home Location
             </label>
             <div className="relative">
               <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -146,11 +171,11 @@ export default function CustomerProfileSettingsPage() {
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Personal Wedding Bio & Vision
+              Wedding Vision & Notes
             </label>
             <Textarea
               rows={4}
-              placeholder="Tell vendors about your wedding style, vision, preferred dates, and design inspirations..."
+              placeholder="Tell vendors about your vision, themes, color palette, or estimated timeline..."
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
               className="rounded-xl border-[#e7e0d3] dark:border-[#383124]"
@@ -164,11 +189,11 @@ export default function CustomerProfileSettingsPage() {
               className="rounded-full bg-[#C39C45] px-8 text-white hover:bg-[#b08b38] h-11 font-medium shadow-sm transition"
             >
               {submitting ? (
-                <ButtonLoader text="Saving Changes..." />
+                <ButtonLoader text="Saving Profile Settings..." />
               ) : (
                 <span className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
-                  <span>Save Profile Settings</span>
+                  <span>Update Profile Details</span>
                 </span>
               )}
             </Button>

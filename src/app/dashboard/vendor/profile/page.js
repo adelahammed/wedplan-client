@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { User, Phone, MapPin, Camera, Save, Briefcase, Award } from "lucide-react";
+import { User, Phone, MapPin, Camera, Save, Briefcase } from "lucide-react";
+import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,36 +13,63 @@ import { toast } from "sonner";
 
 export default function VendorProfileSettingsPage() {
   const { data: session } = useSession();
+  const user = session?.user;
   const [submitting, setSubmitting] = React.useState(false);
 
   const [formData, setFormData] = React.useState({
-    name: "The Royal Ballroom Hospitality Group",
-    email: "concierge@royalpalace.com",
-    phone: "+1 (212) 555-0199",
-    city: "Manhattan, New York",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-    bio: "Pioneering bespoke architectural event spaces and luxury wedding hospitality with over 20 years of five-star culinary execution."
+    name: "",
+    email: "",
+    phone: "",
+    city: "",
+    image: "",
+    bio: "",
+    businessName: ""
   });
 
   React.useEffect(() => {
-    if (session?.user) {
-      queueMicrotask(() => {
-        setFormData((prev) => ({
-          ...prev,
-          name: session.user.name || prev.name,
-          email: session.user.email || prev.email,
-          image: session.user.image || prev.image
-        }));
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        city: user.location || "",
+        image: user.image || "",
+        bio: user.bio || "",
+        businessName: user.businessName || user.name || ""
       });
     }
-  }, [session]);
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!user) return;
     setSubmitting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      toast.success("Vendor profile and contact details updated successfully!");
+      let token = getStoredToken();
+      if (!token) {
+        token = await fetchAuthToken(user);
+      }
+      const userId = user.id || user._id;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/users/profile/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          image: formData.image,
+          phone: formData.phone,
+          businessName: formData.businessName,
+          location: formData.city,
+          bio: formData.bio
+        })
+      });
+      if (res.ok) {
+        toast.success("Vendor profile and contact details updated successfully!");
+      } else {
+        toast.error("Failed to update profile settings");
+      }
     } catch {
       toast.error("Failed to update profile settings");
     } finally {
@@ -70,12 +98,12 @@ export default function VendorProfileSettingsPage() {
               {formData.image ? (
                 <Image
                   src={formData.image}
-                  alt={formData.name}
+                  alt={formData.name || "Vendor"}
                   fill
                   className="object-cover"
                 />
               ) : (
-                <span>{formData.name[0]}</span>
+                <span>{(formData.name || "V")[0]}</span>
               )}
             </div>
             <div className="flex-1 w-full space-y-2">
@@ -98,10 +126,10 @@ export default function VendorProfileSettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-                Business / Artisan Name *
+                Representative Name *
               </label>
               <div className="relative">
-                <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 <Input
                   type="text"
                   required
@@ -114,15 +142,48 @@ export default function VendorProfileSettingsPage() {
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-                Direct Phone Number *
+                Business / Studio Name *
+              </label>
+              <div className="relative">
+                <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <Input
+                  type="text"
+                  required
+                  value={formData.businessName}
+                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                  className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
+                Direct Phone Number
               </label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 <Input
                   type="text"
-                  required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
+                Operating City / Location
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <Input
+                  type="text"
+                  placeholder="e.g. Manhattan, New York"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
                 />
               </div>
@@ -131,24 +192,7 @@ export default function VendorProfileSettingsPage() {
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Operating City / Headquarters *
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-              <Input
-                type="text"
-                required
-                placeholder="e.g. Manhattan, New York"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Public Business Bio & Vendor Story
+              Public Business Bio & Studio Story
             </label>
             <Textarea
               rows={4}

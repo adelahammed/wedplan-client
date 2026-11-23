@@ -11,10 +11,10 @@ import {
   LayoutDashboard,
   Settings,
   LogOut,
-  ChevronDown,
-  Sparkles
+  ChevronDown
 } from "lucide-react";
 import { useSession, signOut } from "@/lib/auth-client";
+import { removeStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -45,6 +45,7 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     try {
+      removeStoredToken();
       await signOut();
       toast.success("Successfully signed out");
       router.push("/");
@@ -53,13 +54,23 @@ export function Navbar() {
     }
   };
 
+  const user = session?.user;
+  const userRole = (user?.role || "customer").toLowerCase();
+  const profileHref =
+    userRole === "vendor"
+      ? "/dashboard/vendor/profile"
+      : userRole === "admin"
+      ? "/dashboard/admin"
+      : "/dashboard/customer/profile";
+
   const navLinks = [
     { name: "Home", href: "/" },
-    { name: "Browse Services", href: "/services" },
-    { name: "Dashboard", href: "/dashboard" }
+    { name: "Browse Services", href: "/services" }
   ];
 
-  const user = session?.user;
+  if (user) {
+    navLinks.push({ name: "Dashboard", href: `/dashboard/${userRole}` });
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#e7e0d3] bg-[#fdfbf7]/90 backdrop-blur-md dark:border-[#383124] dark:bg-[#14120e]/90 transition-colors">
@@ -143,12 +154,15 @@ export function Navbar() {
                       <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
                         {user.email}
                       </p>
+                      <span className="text-[10px] uppercase font-bold text-[#C39C45] mt-0.5">
+                        {userRole}
+                      </span>
                     </div>
                   </div>
 
                   <div className="py-1">
                     <Link
-                      href="/dashboard"
+                      href={`/dashboard/${userRole}`}
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-zinc-700 hover:bg-[#f8f3ea] hover:text-[#C39C45] dark:text-zinc-300 dark:hover:bg-[#29241b]"
                     >
@@ -156,7 +170,7 @@ export function Navbar() {
                       <span>Dashboard</span>
                     </Link>
                     <Link
-                      href="/dashboard/customer/profile"
+                      href={profileHref}
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-zinc-700 hover:bg-[#f8f3ea] hover:text-[#C39C45] dark:text-zinc-300 dark:hover:bg-[#29241b]"
                     >
@@ -261,14 +275,14 @@ export function Navbar() {
 
                 <div className="space-y-1">
                   <Link
-                    href="/dashboard"
+                    href={`/dashboard/${userRole}`}
                     className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-700 hover:bg-[#f6efe2] dark:text-zinc-300 dark:hover:bg-[#29241b]"
                   >
                     <LayoutDashboard className="h-4 w-4 text-[#C39C45]" />
                     <span>Dashboard</span>
                   </Link>
                   <Link
-                    href="/dashboard/customer/profile"
+                    href={profileHref}
                     className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-700 hover:bg-[#f6efe2] dark:text-zinc-300 dark:hover:bg-[#29241b]"
                   >
                     <Settings className="h-4 w-4 text-[#C39C45]" />

@@ -9,14 +9,17 @@ import {
   XCircle,
   ArrowRight,
   Heart,
-  Sparkles,
-  MapPin
+  Sparkles
 } from "lucide-react";
-import { fetchBookings } from "@/lib/api";
+import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { UILoader } from "@/components/ui-loader";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/auth-client";
 
 export default function CustomerOverviewPage() {
+  const { data: session } = useSession();
+  const user = session?.user;
+
   const [loading, setLoading] = React.useState(true);
   const [stats, setStats] = React.useState({
     total: 0,
@@ -24,30 +27,41 @@ export default function CustomerOverviewPage() {
     accepted: 0,
     rejected: 0
   });
-  const [recentBookings, setRecentBookings] = React.useState([]);
 
   React.useEffect(() => {
     async function loadData() {
+      if (!user) return;
       setLoading(true);
       try {
-        const bookings = await fetchBookings();
-        const pending = bookings.filter((b) => b.status === "Pending").length;
-        const accepted = bookings.filter((b) => b.status === "Accepted").length;
-        const rejected = bookings.filter((b) => b.status === "Rejected").length;
-
-        setStats({
-          total: bookings.length,
-          pending,
-          accepted,
-          rejected
+        let token = getStoredToken();
+        if (!token) {
+          token = await fetchAuthToken(user);
+        }
+        const customerId = user.id || user._id;
+        const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/customer/stats/${customerId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          cache: "no-store"
         });
-        setRecentBookings(bookings.slice(0, 3));
+        if (res.ok) {
+          const data = await res.json();
+          setStats({
+            total: data.totalBookings || 0,
+            pending: data.pendingBookings || 0,
+            accepted: data.acceptedBookings || 0,
+            rejected: data.rejectedBookings || 0
+          });
+        }
+      } catch {
       } finally {
         setLoading(false);
       }
     }
-    loadData();
-  }, []);
+    if (user) {
+      loadData();
+    }
+  }, [user]);
 
   if (loading) {
     return (
@@ -62,30 +76,30 @@ export default function CustomerOverviewPage() {
     {
       title: "Total Booking Requests",
       value: stats.total,
-      sub: "Inquiries submitted",
+      sub: "Inquiries submitted to vendors",
       icon: CalendarCheck,
-      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/40"
+      color: "bg-[#f6efe2] text-[#C39C45] dark:bg-[#29241b]"
     },
     {
-      title: "Pending Bookings",
+      title: "Pending Requests",
       value: stats.pending,
-      sub: "Awaiting vendor confirmation",
+      sub: "Awaiting vendor response",
       icon: Clock,
-      color: "text-amber-600 bg-amber-50 dark:bg-amber-950/40"
+      color: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
     },
     {
       title: "Accepted Bookings",
       value: stats.accepted,
-      sub: "Dates locked with vendors",
+      sub: "Confirmed wedding reservations",
       icon: CheckCircle2,
-      color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
+      color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
     },
     {
-      title: "Rejected Bookings",
+      title: "Rejected Inquiries",
       value: stats.rejected,
-      sub: "Declined or unavailable",
+      sub: "Unavailable dates or venues",
       icon: XCircle,
-      color: "text-red-600 bg-red-50 dark:bg-red-950/40"
+      color: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
     }
   ];
 
@@ -94,19 +108,20 @@ export default function CustomerOverviewPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-widest text-[#C39C45]">
-            Bridal Suite
+            Bridal Suite & Itinerary
           </span>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
-            Customer Dashboard
+            Welcome, {user?.name || "Wedding Planner"}
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Track your wedding booking requests, vendor schedules, and event details.
+            Track your vendor inquiries, manage wedding itineraries, and curate your ceremony.
           </p>
         </div>
+
         <Link href="/services">
           <Button className="rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] flex items-center gap-2">
-            <span>Browse More Services</span>
-            <ArrowRight className="h-4 w-4" />
+            <Heart className="h-4 w-4" />
+            <span>Discover Vendors</span>
           </Button>
         </Link>
       </div>
@@ -115,74 +130,34 @@ export default function CustomerOverviewPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div
-              key={card.title}
-              className="rounded-2xl border border-[#e7e0d3] bg-white p-6 shadow-xs dark:border-[#383124] dark:bg-[#1c1914] flex items-center justify-between"
-            >
-              <div>
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  {card.title}
-                </p>
-                <h3 className="mt-1.5 text-3xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
-                  {card.value}
-                </h3>
-                <p className="mt-1 text-xs text-zinc-400">
-                  {card.sub}
-                </p>
+            <Link key={card.title} href="/dashboard/customer/bookings" className="group">
+              <div className="rounded-3xl border border-[#e7e0d3] bg-white p-6 shadow-xs hover:shadow-lg transition-all dark:border-[#383124] dark:bg-[#1c1914] flex flex-col justify-between h-full">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    {card.title}
+                  </span>
+                  <div className={`p-2.5 rounded-2xl ${card.color}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-3xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
+                    {card.value}
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    {card.sub}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-[#f0ebe1] dark:border-[#2e281d] flex items-center justify-between text-xs font-medium text-[#C39C45] group-hover:underline">
+                  <span>View Bookings</span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </div>
               </div>
-              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${card.color}`}>
-                <Icon className="h-6 w-6" />
-              </div>
-            </div>
+            </Link>
           );
         })}
-      </div>
-
-      <div className="rounded-2xl border border-[#e7e0d3] bg-white p-6 shadow-xs dark:border-[#383124] dark:bg-[#1c1914]">
-        <div className="flex items-center justify-between pb-4 border-b border-[#f0ebe1] dark:border-[#2e281d]">
-          <div>
-            <h3 className="text-lg font-serif font-bold text-zinc-900 dark:text-zinc-100">
-              Recent Booking Inquiries
-            </h3>
-            <p className="text-xs text-zinc-500">
-              Live status updates on your wedding vendor communications
-            </p>
-          </div>
-          <Link href="/dashboard/customer/bookings">
-            <Button variant="ghost" size="sm" className="text-xs text-[#C39C45]">
-              View All Bookings <ArrowRight className="ml-1 h-3.5 w-3.5" />
-            </Button>
-          </Link>
-        </div>
-
-        <div className="divide-y divide-[#f0ebe1] dark:divide-[#2e281d]">
-          {recentBookings.map((b) => (
-            <div key={b.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {b.serviceName}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {b.vendorName} • {b.eventDate} ({b.eventLocation})
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    b.status === "Accepted"
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                      : b.status === "Rejected"
-                      ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
-                      : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-                  }`}
-                >
-                  {b.status}
-                </span>
-                <span className="text-xs text-zinc-400">{b.requestDate}</span>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
