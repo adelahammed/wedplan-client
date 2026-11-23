@@ -82,7 +82,7 @@ function PaymentContent() {
                   </h3>
                 </div>
                 <p className="text-sm text-zinc-500">
-                  Complete your subscription payment through Stripe's secure
+                  Complete your subscription payment through Stripe&apos;s secure
                   checkout page.
                 </p>
               </div>
