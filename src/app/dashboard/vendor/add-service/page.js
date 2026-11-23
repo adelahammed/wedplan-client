@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { UploadCloud, PlusCircle, MapPin, DollarSign, X } from "lucide-react";
 
-import { createService, MOCK_CATEGORIES } from "@/lib/api";
+import { MOCK_CATEGORIES } from "@/lib/api";
+import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +31,6 @@ export default function VendorAddServicePage() {
   const [imagePreviews, setImagePreviews] = React.useState([]);
 
   const [uploading, setUploading] = React.useState(false);
-  const [uploadProgress, setUploadProgress] = React.useState("");
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -48,7 +48,6 @@ export default function VendorAddServicePage() {
     setFinalImages([]);
 
     const previews = files.map((file) => URL.createObjectURL(file));
-
     setImagePreviews(previews);
 
     try {
@@ -75,7 +74,6 @@ export default function VendorAddServicePage() {
       );
 
       setFinalImages(uploadedImages);
-
       toast.success("All images uploaded successfully!");
     } catch (error) {
       setFinalImages([]);
@@ -87,17 +85,13 @@ export default function VendorAddServicePage() {
 
   const handleRemoveImage = (index) => {
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
-
     setFinalImages((prev) => prev.filter((_, i) => i !== index));
-
     setImagePreviews((prev) => {
       URL.revokeObjectURL(prev[index]);
-
       return prev.filter((_, i) => i !== index);
     });
 
     const input = document.getElementById("service-file-upload");
-
     if (input) {
       input.value = "";
     }
@@ -116,25 +110,39 @@ export default function VendorAddServicePage() {
       return;
     }
 
-    const form = e.currentTarget;
-    const formElementsData = new FormData(form);
+    if (!user) {
+      toast.error("Please sign in as a vendor to publish a service.");
+      return;
+    }
 
-    const newService = {
-      ...Object.fromEntries(formElementsData.entries()),
-      images: finalImages,
-      vendorId: user.id,
-      vendorImage: user.image,
-      vendorName: user.name,
-    };
+    setSubmitting(true);
 
     try {
+      let token = getStoredToken();
+      if (!token) {
+        token = await fetchAuthToken(user);
+      }
+
+      const newService = {
+        name,
+        category,
+        price: Number(price) || price,
+        location,
+        description,
+        images: finalImages,
+        vendorId: user.id || user._id,
+        vendorName: user.name,
+        vendorEmail: user.email,
+        vendorImage: user.image,
+      };
+
       const result = await fetch(
         `${process.env.NEXT_PUBLIC_SERVER_URL}/services`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            // authorization: `Bearer ${tokenData}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(newService),
         },
@@ -142,14 +150,15 @@ export default function VendorAddServicePage() {
       const data = await result.json();
 
       if (result.ok && (data.acknowledged || data.insertedId || data.success)) {
-        toast.success("Service successfully added to BookNook!");
-        // router.push("/my-books");
+        toast.success("Service submitted successfully and is pending approval!");
+        router.push("/dashboard/vendor/services");
       } else {
         toast.error(data.message || "Failed to add service. Please try again.");
       }
     } catch (error) {
-      console.error("Error adding service:", error);
       toast.error("Something went wrong. Please check your connection.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -159,14 +168,11 @@ export default function VendorAddServicePage() {
         <span className="text-xs font-semibold uppercase tracking-widest text-[#C39C45]">
           New Offering
         </span>
-
         <h1 className="text-2xl sm:text-3xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
           Add New Wedding Service
         </h1>
-
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          List a new wedding venue, photography package, floral styling, or
-          catering menu.
+          List a new wedding venue, photography package, floral styling, or catering menu.
         </p>
       </div>
 
@@ -176,7 +182,6 @@ export default function VendorAddServicePage() {
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
               Service Name *
             </label>
-
             <Input
               required
               name="name"
@@ -193,7 +198,6 @@ export default function VendorAddServicePage() {
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
                 Service Category *
               </label>
-
               <select
                 disabled={submitting}
                 name="category"
@@ -213,10 +217,8 @@ export default function VendorAddServicePage() {
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
                 Starting Rate / Price *
               </label>
-
               <div className="relative">
                 <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-
                 <Input
                   required
                   disabled={submitting}
@@ -236,10 +238,8 @@ export default function VendorAddServicePage() {
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
               Service Location *
             </label>
-
             <div className="relative">
               <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-
               <Input
                 required
                 name="location"
@@ -256,7 +256,6 @@ export default function VendorAddServicePage() {
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
               Comprehensive Service Description *
             </label>
-
             <Textarea
               required
               name="description"
@@ -273,7 +272,6 @@ export default function VendorAddServicePage() {
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
               Service Cover Images (Maximum 5) *
             </label>
-
             <div className="mt-1 flex justify-center rounded-2xl border-2 border-dashed border-[#e7e0d3] px-6 pt-5 pb-6 dark:border-[#383124]">
               <div className="w-full space-y-3 text-center">
                 {imagePreviews.length > 0 ? (
@@ -290,7 +288,6 @@ export default function VendorAddServicePage() {
                           unoptimized
                           className="object-cover"
                         />
-
                         {!uploading && !submitting && (
                           <button
                             type="button"
@@ -322,7 +319,6 @@ export default function VendorAddServicePage() {
                         ? "Change Selected Images"
                         : "Upload High-Res Photos"}
                     </span>
-
                     <input
                       id="service-file-upload"
                       type="file"
@@ -354,13 +350,6 @@ export default function VendorAddServicePage() {
               </div>
             </div>
           </div>
-
-          {uploadProgress && (
-            <div className="p-3 rounded-xl bg-[#f6efe2] text-[#C39C45] text-xs flex items-center gap-2 dark:bg-[#29241b]">
-              <span className="w-3.5 h-3.5 border-2 border-[#C39C45] border-t-transparent rounded-full animate-spin" />
-              <span>{uploadProgress}</span>
-            </div>
-          )}
 
           <div className="pt-2">
             <Button
