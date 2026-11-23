@@ -43,12 +43,7 @@ export default function SignUpPage() {
 
     try {
       const { data, error } = await signUp.email({
-        name: user.name,
-        email: user.email,
-        password: user.password,
-        image:
-          user.image ||
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+        ...user,
         callbackURL: "/",
       });
 
@@ -102,31 +97,44 @@ export default function SignUpPage() {
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
               Account Role
             </label>
+
             <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setRole("Customer")}
-                className={`py-3 px-4 rounded-2xl border text-sm font-medium transition text-center ${
+              <label
+                className={`py-3 px-4 rounded-2xl border text-sm font-medium transition text-center cursor-pointer ${
                   role === "Customer"
                     ? "border-[#C39C45] bg-[#f6efe2] text-[#C39C45] font-semibold dark:bg-[#29241b]"
                     : "border-[#e7e0d3] bg-white text-zinc-600 hover:bg-[#fbf8f2] dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-300"
                 }`}
               >
-                Customer / Couple
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("Vendor")}
-                className={`py-3 px-4 rounded-2xl border text-sm font-medium transition text-center ${
+                <input
+                  type="radio"
+                  name="role"
+                  value="Customer"
+                  checked={role === "Customer"}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="sr-only"
+                />
+                Customer
+              </label>
+
+              <label
+                className={`py-3 px-4 rounded-2xl border text-sm font-medium transition text-center cursor-pointer ${
                   role === "Vendor"
                     ? "border-[#C39C45] bg-[#f6efe2] text-[#C39C45] font-semibold dark:bg-[#29241b]"
                     : "border-[#e7e0d3] bg-white text-zinc-600 hover:bg-[#fbf8f2] dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-300"
                 }`}
               >
-                Wedding Vendor
-              </button>
+                <input
+                  type="radio"
+                  name="role"
+                  value="Vendor"
+                  checked={role === "Vendor"}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="sr-only"
+                />
+                Vendor
+              </label>
             </div>
-            <input type="hidden" name="role" value={role} />
           </div>
 
           <div>
