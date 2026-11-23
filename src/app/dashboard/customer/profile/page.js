@@ -26,16 +26,22 @@ export default function CustomerProfileSettingsPage() {
   });
 
   React.useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        city: user.location || "",
-        image: user.image || "",
-        bio: user.bio || ""
-      });
-    }
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active && user) {
+        setFormData({
+          name: user.name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          city: user.location || "",
+          image: user.image || "",
+          bio: user.bio || ""
+        });
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   const handleSubmit = async (e) => {

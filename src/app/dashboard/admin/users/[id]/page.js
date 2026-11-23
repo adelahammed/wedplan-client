@@ -61,9 +61,15 @@ export default function AdminUserDetailsPage({ params }) {
   }, [currentUser, id]);
 
   React.useEffect(() => {
-    if (currentUser) {
-      loadUser();
-    }
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active && currentUser) {
+        loadUser();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [currentUser, loadUser]);
 
   const handleToggleBlock = async () => {

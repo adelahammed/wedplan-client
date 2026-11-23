@@ -27,17 +27,23 @@ export default function VendorProfileSettingsPage() {
   });
 
   React.useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        city: user.location || "",
-        image: user.image || "",
-        bio: user.bio || "",
-        businessName: user.businessName || user.name || ""
-      });
-    }
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active && user) {
+        setFormData({
+          name: user.name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          city: user.location || "",
+          image: user.image || "",
+          bio: user.bio || "",
+          businessName: user.businessName || user.name || ""
+        });
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   const handleSubmit = async (e) => {

@@ -70,9 +70,15 @@ export default function VendorMyServicesPage() {
   }, [user]);
 
   React.useEffect(() => {
-    if (user) {
-      loadData();
-    }
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active && user) {
+        loadData();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [user, loadData]);
 
   const handleToggleActive = async (service) => {

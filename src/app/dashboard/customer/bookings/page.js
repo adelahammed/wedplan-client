@@ -59,9 +59,15 @@ export default function CustomerBookingsPage() {
   }, [user]);
 
   React.useEffect(() => {
-    if (user) {
-      loadBookings();
-    }
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active && user) {
+        loadBookings();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [user, loadBookings]);
 
   const openCancelDialog = (booking) => {

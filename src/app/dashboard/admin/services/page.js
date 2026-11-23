@@ -68,9 +68,15 @@ export default function AdminServicesPage() {
   }, [currentUser, search, statusFilter]);
 
   React.useEffect(() => {
-    if (currentUser) {
-      loadServices();
-    }
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active && currentUser) {
+        loadServices();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [currentUser, loadServices]);
 
   const handleStatusChange = async (service, newStatus) => {
