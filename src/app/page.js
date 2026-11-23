@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -21,8 +22,8 @@ import {
 } from "lucide-react";
 import { fetchServices, MOCK_CATEGORIES, MOCK_TIPS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { UILoader } from "@/components/ui-loader";
+import { useSession } from "@/lib/auth-client";
 
 const sliderImages = [
   "/assets/Slider Image (1).jpg",
@@ -32,6 +33,9 @@ const sliderImages = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
+  const { data: session } = useSession();
+
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const [featuredServices, setFeaturedServices] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -46,8 +50,24 @@ export default function HomePage() {
   React.useEffect(() => {
     async function loadData() {
       try {
-        const services = await fetchServices();
-        setFeaturedServices(services.slice(0, 6));
+        const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/service-list`, {
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setFeaturedServices(data.slice(0, 6));
+          } else {
+            const fallback = await fetchServices();
+            setFeaturedServices(fallback.slice(0, 6));
+          }
+        } else {
+          const fallback = await fetchServices();
+          setFeaturedServices(fallback.slice(0, 6));
+        }
+      } catch {
+        const fallback = await fetchServices();
+        setFeaturedServices(fallback.slice(0, 6));
       } finally {
         setLoading(false);
       }
@@ -61,6 +81,14 @@ export default function HomePage() {
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + sliderImages.length) % sliderImages.length);
+  };
+
+  const handleServiceClick = (serviceId) => {
+    if (!session?.user) {
+      router.push(`/signin?callbackUrl=/services/${serviceId}`);
+    } else {
+      router.push(`/services/${serviceId}`);
+    }
   };
 
   return (
@@ -157,132 +185,124 @@ export default function HomePage() {
         >
           <ChevronRight className="h-6 w-6" />
         </button>
-
-        <div className="absolute bottom-6 z-20 flex gap-2">
-          {sliderImages.map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setCurrentSlide(idx)}
-              className={`h-2.5 rounded-full transition-all ${
-                currentSlide === idx ? "w-8 bg-[#C39C45]" : "w-2.5 bg-white/40"
-              }`}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
-        </div>
       </section>
 
       <section className="py-20 sm:py-28 bg-[#fdfbf7] dark:bg-[#14120e]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs sm:text-sm font-semibold tracking-widest uppercase text-[#C39C45]">
-              Handcrafted Excellence
-            </span>
-            <h2 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
-              Featured Wedding Services
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-              Hand-selected bridal estates, visionary visual artists, and artisan culinary teams recognized for unforgettable elegance.
-            </p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-4">
+            <div>
+              <span className="text-xs sm:text-sm font-semibold tracking-widest uppercase text-[#C39C45]">
+                Curated Excellence
+              </span>
+              <h2 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
+                Featured Wedding Services
+              </h2>
+              <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl">
+                Browse handpicked selections from our verified artisans, venues, and luxury service partners.
+              </p>
+            </div>
+            <Link href="/services" className="hidden md:inline-flex items-center text-sm font-semibold text-[#C39C45] hover:underline">
+              <span>View Full Directory</span>
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
           </div>
 
           {loading ? (
             <UILoader
-              message="Fetching Featured Wedding Services"
-              subtext="Loading verified venues and artisans..."
+              message="Curating Featured Packages"
+              subtext="Loading top-rated wedding venues and artists..."
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredServices.map((service, index) => (
-                <motion.div
-                  key={service.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-[#e7e0d3] bg-white shadow-xs hover:shadow-xl transition-all duration-300 dark:border-[#383124] dark:bg-[#1c1914]"
-                >
-                  <div className="relative h-64 w-full overflow-hidden bg-zinc-100">
-                    <Image
-                      src={service.image}
-                      alt={service.name}
-                      fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
-                        {service.category}
-                      </span>
-                    </div>
-                    {service.vendor?.isPremium && (
-                      <div className="absolute top-4 right-4">
-                        <span className="flex items-center gap-1 rounded-full bg-[#C39C45] px-2.5 py-1 text-xs font-semibold text-white shadow-xs">
-                          <Award className="h-3.5 w-3.5" />
-                          Premium
+              {featuredServices.map((service, index) => {
+                const coverImg = Array.isArray(service.images) && service.images.length > 0
+                  ? service.images[0]
+                  : service.image || "/assets/Slider Image (1).jpg";
+                const vendorName = service.vendorName || service.vendor?.name || "Wedding Artisan";
+                const vendorImg = service.vendorImage || service.vendor?.avatar || "/assets/Favicon.png";
+                const serviceId = service._id || service.id;
+
+                return (
+                  <motion.div
+                    key={serviceId}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="group flex flex-col overflow-hidden rounded-2xl border border-[#e7e0d3] bg-white shadow-xs hover:shadow-xl transition-all duration-300 dark:border-[#383124] dark:bg-[#1c1914]"
+                  >
+                    <div className="relative h-64 w-full overflow-hidden bg-zinc-100">
+                      <Image
+                        src={coverImg}
+                        alt={service.name}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute top-4 left-4">
+                        <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+                          {service.category}
                         </span>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col p-6">
-                    <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-[#C39C45]" />
-                        {service.location}
-                      </span>
-                      <span className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
-                        <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                        {service.rating} ({service.reviewsCount})
-                      </span>
                     </div>
 
-                    <h3 className="text-xl font-serif font-bold text-zinc-900 group-hover:text-[#C39C45] transition-colors dark:text-zinc-50 line-clamp-1">
-                      {service.name}
-                    </h3>
+                    <div className="flex flex-1 flex-col p-6">
+                      <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5 text-[#C39C45]" />
+                          {service.location}
+                        </span>
+                        <span className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
+                          <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                          5.0
+                        </span>
+                      </div>
 
-                    <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
-                      {service.description}
-                    </p>
+                      <h3 className="text-xl font-serif font-bold text-zinc-900 group-hover:text-[#C39C45] transition-colors dark:text-zinc-50 line-clamp-1">
+                        {service.name}
+                      </h3>
 
-                    <div className="mt-4 pt-4 border-t border-[#f0ebe1] dark:border-[#2e281d] flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="relative h-8 w-8 rounded-full overflow-hidden bg-[#f6efe2]">
-                          <Image
-                            src={service.vendor?.avatar || "/assets/Favicon.png"}
-                            alt={service.vendor?.name}
-                            fill
-                            className="object-cover"
-                          />
+                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
+                        {service.description}
+                      </p>
+
+                      <div className="mt-4 pt-4 border-t border-[#f0ebe1] dark:border-[#2e281d] flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative h-8 w-8 rounded-full overflow-hidden bg-[#f6efe2]">
+                            <Image
+                              src={vendorImg}
+                              alt={vendorName}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-zinc-400">Vendor</span>
+                            <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 line-clamp-1 max-w-[130px]">
+                              {vendorName}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs text-zinc-400">Vendor</span>
-                          <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 line-clamp-1 max-w-[130px]">
-                            {service.vendor?.name}
+                        <div className="text-right">
+                          <span className="text-xs text-zinc-400 block">Starting at</span>
+                          <span className="text-lg font-serif font-bold text-[#C39C45]">
+                            ${service.price}
                           </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs text-zinc-400 block">Starting at</span>
-                        <span className="text-lg font-serif font-bold text-[#C39C45]">
-                          {service.price}
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="mt-5">
-                      <Link href={`/services/${service.id}`} className="block w-full">
+                      <div className="mt-5">
                         <Button
+                          onClick={() => handleServiceClick(serviceId)}
                           variant="outline"
                           className="w-full rounded-xl border-[#C39C45]/40 text-[#C39C45] hover:bg-[#C39C45] hover:text-white transition-all font-medium"
                         >
                           View Details
                         </Button>
-                      </Link>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
 
