@@ -122,6 +122,9 @@ export default function SignUpPage() {
     const formData = new FormData(e.currentTarget);
     const formUser = Object.fromEntries(formData.entries());
 
+    const params = new URLSearchParams(window.location.search);
+    const callback = params.get("callbackUrl");
+
     try {
       const userRole = role.toLowerCase();
       const { data, error } = await signUp.email({
@@ -130,7 +133,7 @@ export default function SignUpPage() {
         password: formUser.password,
         role: userRole,
         image: finalImage || undefined,
-        callbackURL: "/",
+        callbackURL: callback || "/",
       });
 
       if (error) {
@@ -141,7 +144,11 @@ export default function SignUpPage() {
       if (data) {
         await fetchAuthToken({ email: formUser.email, role: userRole });
         toast.success("Account created successfully!");
-        router.push(`/dashboard/${userRole}`);
+        if (callback) {
+          router.push(callback);
+        } else {
+          router.push(`/dashboard/${userRole}`);
+        }
       }
     } catch (error) {
       toast.error(error.message || "Something went wrong!");
@@ -152,9 +159,11 @@ export default function SignUpPage() {
 
   const handleGoogleSignIn = async () => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      const callback = params.get("callbackUrl") || "/";
       await signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: callback,
       });
     } catch {
       toast.error("Google authentication failed.");

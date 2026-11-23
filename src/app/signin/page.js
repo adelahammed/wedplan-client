@@ -22,10 +22,13 @@ export default function SignInPage() {
     const formData = new FormData(e.target);
     const user = Object.fromEntries(formData.entries());
 
+    const params = new URLSearchParams(window.location.search);
+    const callback = params.get("callbackUrl");
+
     try {
       const { data, error } = await signIn.email({
         ...user,
-        callbackURL: "/",
+        callbackURL: callback || "/",
       });
 
       if (error) {
@@ -37,8 +40,6 @@ export default function SignInPage() {
         await fetchAuthToken({ email: user.email });
         toast.success("Sign in successful!");
         const role = data.user?.role?.toLowerCase() || "customer";
-        const params = new URLSearchParams(window.location.search);
-        const callback = params.get("callbackUrl");
         if (callback) {
           router.push(callback);
         } else {
@@ -54,9 +55,11 @@ export default function SignInPage() {
 
   const handleGoogleSignIn = async () => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      const callback = params.get("callbackUrl") || "/";
       await signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: callback,
       });
     } catch {
       toast.error("Google authentication failed");
