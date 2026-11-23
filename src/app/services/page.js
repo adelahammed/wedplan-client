@@ -13,7 +13,7 @@ import {
   SlidersHorizontal,
   X,
   Sparkles,
-  ArrowUpDown
+  ArrowUpDown,
 } from "lucide-react";
 import { fetchServices, MOCK_CATEGORIES } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,8 @@ function BrowseServicesContent() {
   const [services, setServices] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedCategory, setSelectedCategory] = React.useState(initialCategory);
+  const [selectedCategory, setSelectedCategory] =
+    React.useState(initialCategory);
   const [selectedLocation, setSelectedLocation] = React.useState("All");
   const [sortBy, setSortBy] = React.useState("featured");
 
@@ -39,7 +40,7 @@ function BrowseServicesContent() {
     "Hudson Valley, New York",
     "Jersey City, New Jersey",
     "SoHo, New York",
-    "Queens, New York"
+    "Queens, New York",
   ];
 
   const categoryList = ["All", ...MOCK_CATEGORIES.map((c) => c.name)];
@@ -48,7 +49,13 @@ function BrowseServicesContent() {
     async function loadData() {
       setLoading(true);
       try {
-        const data = await fetchServices();
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/service-list`,
+          {
+            cache: "no-store",
+          },
+        );
+        const data = await res.json();
         setServices(data);
       } finally {
         setLoading(false);
@@ -66,7 +73,9 @@ function BrowseServicesContent() {
 
         const matchesLocation =
           selectedLocation === "All" ||
-          service.location.toLowerCase().includes(selectedLocation.toLowerCase());
+          service.location
+            .toLowerCase()
+            .includes(selectedLocation.toLowerCase());
 
         const query = searchQuery.toLowerCase().trim();
         const matchesSearch =
@@ -104,7 +113,8 @@ function BrowseServicesContent() {
             Browse Wedding Services
           </h1>
           <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-            Explore premier wedding venues, fine art photographers, bespoke florists, master caterers, and bridal stylists for your special day.
+            Explore premier wedding venues, fine art photographers, bespoke
+            florists, master caterers, and bridal stylists for your special day.
           </p>
         </div>
 
@@ -174,8 +184,16 @@ function BrowseServicesContent() {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#f0ebe1] dark:border-[#2e281d] text-xs text-zinc-500">
             <div className="flex items-center gap-2">
-              <span>Showing <strong className="text-zinc-900 dark:text-zinc-100">{filteredServices.length}</strong> available services</span>
-              {(selectedCategory !== "All" || selectedLocation !== "All" || searchQuery) && (
+              <span>
+                Showing{" "}
+                <strong className="text-zinc-900 dark:text-zinc-100">
+                  {filteredServices.length}
+                </strong>{" "}
+                available services
+              </span>
+              {(selectedCategory !== "All" ||
+                selectedLocation !== "All" ||
+                searchQuery) && (
                 <button
                   type="button"
                   onClick={resetFilters}
@@ -218,7 +236,9 @@ function BrowseServicesContent() {
               No Services Found
             </h3>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto">
-              We could not find any wedding services matching your current filters. Try expanding your search query or clearing selected categories.
+              We could not find any wedding services matching your current
+              filters. Try expanding your search query or clearing selected
+              categories.
             </p>
             <div className="mt-6">
               <Button
@@ -233,12 +253,12 @@ function BrowseServicesContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredServices.map((service) => (
               <div
-                key={service.id}
+                key={service._id}
                 className="group flex flex-col overflow-hidden rounded-2xl border border-[#e7e0d3] bg-white shadow-xs hover:shadow-xl transition-all duration-300 dark:border-[#383124] dark:bg-[#1c1914]"
               >
                 <div className="relative h-64 w-full overflow-hidden bg-zinc-100">
                   <Image
-                    src={service.image}
+                    src={service.images[0]}
                     alt={service.name}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -264,10 +284,6 @@ function BrowseServicesContent() {
                       <MapPin className="h-3.5 w-3.5 text-[#C39C45]" />
                       {service.location}
                     </span>
-                    <span className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
-                      <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                      {service.rating} ({service.reviewsCount})
-                    </span>
                   </div>
 
                   <h3 className="text-xl font-serif font-bold text-zinc-900 group-hover:text-[#C39C45] transition-colors dark:text-zinc-50 line-clamp-1">
@@ -282,8 +298,8 @@ function BrowseServicesContent() {
                     <div className="flex items-center gap-2.5">
                       <div className="relative h-8 w-8 rounded-full overflow-hidden bg-[#f6efe2]">
                         <Image
-                          src={service.vendor?.avatar || "/assets/Favicon.png"}
-                          alt={service.vendor?.name}
+                          src={service.vendorImage || "/assets/Favicon.png"}
+                          alt={service.vendorName}
                           fill
                           className="object-cover"
                         />
@@ -291,12 +307,14 @@ function BrowseServicesContent() {
                       <div className="flex flex-col">
                         <span className="text-xs text-zinc-400">Vendor</span>
                         <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 line-clamp-1 max-w-[130px]">
-                          {service.vendor?.name}
+                          {service.vendorName}
                         </span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-zinc-400 block">Starting at</span>
+                      <span className="text-xs text-zinc-400 block">
+                        Starting at
+                      </span>
                       <span className="text-lg font-serif font-bold text-[#C39C45]">
                         {service.price}
                       </span>
@@ -304,7 +322,10 @@ function BrowseServicesContent() {
                   </div>
 
                   <div className="mt-5">
-                    <Link href={`/services/${service.id}`} className="block w-full">
+                    <Link
+                      href={`/services/${service._id}`}
+                      className="block w-full"
+                    >
                       <Button
                         variant="outline"
                         className="w-full rounded-xl border-[#C39C45]/40 text-[#C39C45] hover:bg-[#C39C45] hover:text-white transition-all font-medium"
