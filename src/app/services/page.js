@@ -65,35 +65,26 @@ function BrowseServicesContent() {
   }, []);
 
   const filteredServices = React.useMemo(() => {
-    return services
-      .filter((service) => {
-        const matchesCategory =
-          selectedCategory === "All" ||
-          service.category.toLowerCase() === selectedCategory.toLowerCase();
+    return services.filter((service) => {
+      const matchesCategory =
+        selectedCategory === "All" ||
+        service.category.toLowerCase() === selectedCategory.toLowerCase();
 
-        const matchesLocation =
-          selectedLocation === "All" ||
-          service.location
-            .toLowerCase()
-            .includes(selectedLocation.toLowerCase());
+      const matchesLocation =
+        selectedLocation === "All" ||
+        service.location.toLowerCase().includes(selectedLocation.toLowerCase());
 
-        const query = searchQuery.toLowerCase().trim();
-        const matchesSearch =
-          !query ||
-          service.name.toLowerCase().includes(query) ||
-          service.description.toLowerCase().includes(query) ||
-          service.vendor?.name.toLowerCase().includes(query) ||
-          service.location.toLowerCase().includes(query);
+      const query = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !query ||
+        service.name.toLowerCase().includes(query) ||
+        service.description.toLowerCase().includes(query) ||
+        service.vendor?.name.toLowerCase().includes(query) ||
+        service.location.toLowerCase().includes(query);
 
-        return matchesCategory && matchesLocation && matchesSearch;
-      })
-      .sort((a, b) => {
-        if (sortBy === "price-asc") return a.priceNum - b.priceNum;
-        if (sortBy === "price-desc") return b.priceNum - a.priceNum;
-        if (sortBy === "rating") return b.rating - a.rating;
-        return 0;
-      });
-  }, [services, selectedCategory, selectedLocation, searchQuery, sortBy]);
+      return matchesCategory && matchesLocation && matchesSearch;
+    });
+  }, [services, selectedCategory, selectedLocation, searchQuery]);
 
   const resetFilters = () => {
     setSearchQuery("");
@@ -119,7 +110,7 @@ function BrowseServicesContent() {
         </div>
 
         <div className="mb-10 rounded-2xl border border-[#e7e0d3] bg-white p-5 shadow-xs dark:border-[#383124] dark:bg-[#1c1914]">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             <div className="md:col-span-4 relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
               <Input
@@ -140,7 +131,7 @@ function BrowseServicesContent() {
               )}
             </div>
 
-            <div className="md:col-span-3">
+            <div className="md:col-span-4">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -154,7 +145,7 @@ function BrowseServicesContent() {
               </select>
             </div>
 
-            <div className="md:col-span-3">
+            <div className="md:col-span-4">
               <select
                 value={selectedLocation}
                 onChange={(e) => setSelectedLocation(e.target.value)}
@@ -165,19 +156,6 @@ function BrowseServicesContent() {
                     {loc === "All" ? "All Locations" : loc}
                   </option>
                 ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full h-11 rounded-xl border border-[#e7e0d3] bg-white px-3.5 text-sm text-zinc-800 outline-none focus:ring-2 focus:ring-[#C39C45] dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-200"
-              >
-                <option value="featured">Featured First</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
               </select>
             </div>
           </div>

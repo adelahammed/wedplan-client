@@ -15,7 +15,7 @@ import {
   ArrowLeft,
   Send,
   Sparkles,
-  Users
+  Users,
 } from "lucide-react";
 import { fetchServiceById, createBooking } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,13 @@ export default function ServiceDetailsPage({ params }) {
     async function loadService() {
       setLoading(true);
       try {
-        const data = await fetchServiceById(id);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/services/${id}`,
+          {
+            cache: "no-store",
+          },
+        );
+        const data = await res.json();
         setService(data);
         if (data?.image) {
           setSelectedImage(data.image);
@@ -77,10 +83,13 @@ export default function ServiceDetailsPage({ params }) {
         eventDate,
         eventLocation,
         guestCount,
-        message: message || "We would love to discuss availability for our wedding.",
-        price: service.price
+        message:
+          message || "We would love to discuss availability for our wedding.",
+        price: service.price,
       });
-      toast.success("Booking request sent successfully! The vendor will review your details.");
+      toast.success(
+        "Booking request sent successfully! The vendor will review your details.",
+      );
       setMessage("");
       setEventDate("");
       setEventLocation("");
@@ -120,7 +129,10 @@ export default function ServiceDetailsPage({ params }) {
     );
   }
 
-  const galleryImages = service.gallery && service.gallery.length > 0 ? service.gallery : [service.image];
+  const galleryImages =
+    service.images && service.images.length > 0
+      ? service.images
+      : [service.images[0]];
 
   return (
     <div className="py-10 sm:py-16 bg-[#fdfbf7] dark:bg-[#14120e] min-h-screen">
@@ -140,7 +152,7 @@ export default function ServiceDetailsPage({ params }) {
             <div className="space-y-4">
               <div className="relative h-[360px] sm:h-[460px] w-full rounded-3xl overflow-hidden border border-[#e7e0d3] bg-zinc-100 shadow-sm dark:border-[#383124]">
                 <Image
-                  src={selectedImage || service.image}
+                  src={selectedImage || service.images[0]}
                   alt={service.name}
                   fill
                   priority
@@ -195,16 +207,17 @@ export default function ServiceDetailsPage({ params }) {
                   <MapPin className="h-4 w-4 text-[#C39C45]" />
                   {service.location}
                 </span>
-                <span className="flex items-center gap-1.5 font-medium text-amber-600 dark:text-amber-400">
-                  <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                  {service.rating} ({service.reviewsCount} verified reviews)
-                </span>
               </div>
 
               <div className="pt-2">
-                <span className="text-xs uppercase tracking-wider text-zinc-400 block">Pricing Details</span>
+                <span className="text-xs uppercase tracking-wider text-zinc-400 block">
+                  Pricing Details
+                </span>
                 <p className="text-3xl font-serif font-bold text-[#C39C45] mt-0.5">
-                  {service.price} <span className="text-sm font-sans font-normal text-zinc-500">/ estimated starting rate</span>
+                  {service.price}{" "}
+                  <span className="text-sm font-sans font-normal text-zinc-500">
+                    / estimated starting rate
+                  </span>
                 </p>
               </div>
             </div>
@@ -225,7 +238,10 @@ export default function ServiceDetailsPage({ params }) {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {service.features.map((feat, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 text-sm text-zinc-700 dark:text-zinc-300">
+                    <div
+                      key={idx}
+                      className="flex items-start gap-2.5 text-sm text-zinc-700 dark:text-zinc-300"
+                    >
                       <CheckCircle2 className="h-4 w-4 text-[#C39C45] shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </div>
@@ -242,30 +258,19 @@ export default function ServiceDetailsPage({ params }) {
                 <div className="flex items-center gap-3.5">
                   <div className="relative h-14 w-14 rounded-full overflow-hidden bg-[#f6efe2]">
                     <Image
-                      src={service.vendor?.avatar || "/assets/Favicon.png"}
-                      alt={service.vendor?.name}
+                      src={service.vendorImage || "/assets/Favicon.png"}
+                      alt="verndor image"
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div>
                     <h4 className="text-lg font-serif font-bold text-zinc-900 dark:text-zinc-100">
-                      {service.vendor?.name}
+                      {service.vendorName}
                     </h4>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       Licensed & Insured Wedding Professional
                     </p>
-                  </div>
-                </div>
-
-                <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5 text-[#C39C45]" />
-                    <span>{service.vendor?.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-3.5 w-3.5 text-[#C39C45]" />
-                    <span>{service.vendor?.phone}</span>
                   </div>
                 </div>
               </div>

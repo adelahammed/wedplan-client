@@ -123,6 +123,8 @@ export default function VendorAddServicePage() {
       ...Object.fromEntries(formElementsData.entries()),
       images: finalImages,
       vendorId: user.id,
+      vendorImage: user.image,
+      vendorName: user.name,
     };
 
     try {
