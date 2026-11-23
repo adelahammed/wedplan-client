@@ -8,17 +8,20 @@ import {
   Clock,
   CreditCard,
   UserCheck,
-  UserMinus,
   TrendingUp,
   ArrowRight,
   ShieldCheck,
   Sparkles
 } from "lucide-react";
-import { fetchUsers, fetchServices, fetchTransactions } from "@/lib/api";
+import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { UILoader } from "@/components/ui-loader";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/auth-client";
 
 export default function AdminOverviewPage() {
+  const { data: session } = useSession();
+  const user = session?.user;
+
   const [loading, setLoading] = React.useState(true);
   const [stats, setStats] = React.useState({
     totalUsers: 0,
@@ -32,87 +35,100 @@ export default function AdminOverviewPage() {
 
   React.useEffect(() => {
     async function loadDashboardData() {
+      if (!user) return;
       setLoading(true);
       try {
-        const [users, services, txns] = await Promise.all([
-          fetchUsers(),
-          fetchServices(),
-          fetchTransactions()
-        ]);
-
-        const vendors = users.filter((u) => u.role === "Vendor").length;
-        const customers = users.filter((u) => u.role === "Customer").length;
-        const pending = services.filter((s) => s.status.toLowerCase() === "pending").length;
-
-        setStats({
-          totalUsers: users.length,
-          totalVendors: vendors,
-          totalCustomers: customers,
-          totalServices: services.length,
-          pendingServices: pending,
-          totalTransactions: txns.length
+        let token = getStoredToken();
+        if (!token) {
+          token = await fetchAuthToken(user);
+        }
+        const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/admin/stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          cache: "no-store"
         });
-        setRecentTransactions(txns.slice(0, 4));
+        if (res.ok) {
+          const data = await res.json();
+          setStats({
+            totalUsers: data.totalUsers || 0,
+            totalVendors: data.totalVendors || 0,
+            totalCustomers: data.totalCustomers || 0,
+            totalServices: data.totalServices || 0,
+            pendingServices: data.pendingServices || 0,
+            totalTransactions: data.totalTransactions || 0
+          });
+          setRecentTransactions(Array.isArray(data.recentTransactions) ? data.recentTransactions : []);
+        }
+      } catch {
       } finally {
         setLoading(false);
       }
     }
-    loadDashboardData();
-  }, []);
-
-  if (loading) {
-    return (
-      <UILoader
-        message="Loading Dashboard Data"
-        subtext="Aggregating platform metrics, users, and audit logs..."
-      />
-    );
-  }
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user]);
 
   const statCards = [
     {
       title: "Total Registered Users",
       value: stats.totalUsers,
-      sub: "Active and pending accounts",
+      sub: `${stats.totalVendors} vendors, ${stats.totalCustomers} customers`,
       icon: Users,
-      color: "text-blue-600 bg-blue-50 dark:bg-blue-950/40"
+      href: "/dashboard/admin/users",
+      color: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
     },
     {
       title: "Total Vendors",
       value: stats.totalVendors,
-      sub: "Verified wedding artisans",
-      icon: Briefcase,
-      color: "text-amber-600 bg-amber-50 dark:bg-amber-950/40"
+      sub: "Active wedding artisans & venues",
+      icon: UserCheck,
+      href: "/dashboard/admin/users",
+      color: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400"
     },
     {
       title: "Total Customers",
       value: stats.totalCustomers,
-      sub: "Couples planning events",
-      icon: UserCheck,
-      color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
+      sub: "Engaged couples & planners",
+      icon: Users,
+      href: "/dashboard/admin/users",
+      color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400"
     },
     {
       title: "Total Services",
       value: stats.totalServices,
-      sub: "Live across categories",
-      icon: Sparkles,
-      color: "text-purple-600 bg-purple-50 dark:bg-purple-950/40"
+      sub: "Catalog wedding packages",
+      icon: Briefcase,
+      href: "/dashboard/admin/services",
+      color: "bg-[#f6efe2] text-[#C39C45] dark:bg-[#29241b] dark:text-[#C39C45]"
     },
     {
-      title: "Pending Services",
+      title: "Pending Approvals",
       value: stats.pendingServices,
-      sub: "Awaiting admin review",
+      sub: "Awaiting moderator review",
       icon: Clock,
-      color: "text-orange-600 bg-orange-50 dark:bg-orange-950/40"
+      href: "/dashboard/admin/services",
+      color: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
     },
     {
       title: "Total Transactions",
       value: stats.totalTransactions,
-      sub: "Completed subscriptions",
+      sub: "Vendor subscriptions & fees",
       icon: CreditCard,
-      color: "text-teal-600 bg-teal-50 dark:bg-teal-950/40"
+      href: "/dashboard/admin/transactions",
+      color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
     }
   ];
+
+  if (loading) {
+    return (
+      <UILoader
+        message="Loading Platform Intelligence"
+        subtext="Aggregating user registrations, listing submissions, and billing..."
+      />
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -122,18 +138,11 @@ export default function AdminOverviewPage() {
             Platform Governance
           </span>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
-            Admin Overview
+            Administrative Control Panel
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Real-time analytics and platform operational statistics.
+            Real-time platform operations, active vendor metrics, and security audits.
           </p>
-        </div>
-        <div className="flex gap-2.5">
-          <Link href="/dashboard/admin/services">
-            <Button className="rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] text-xs">
-              Review Services ({stats.pendingServices})
-            </Button>
-          </Link>
         </div>
       </div>
 
@@ -141,65 +150,89 @@ export default function AdminOverviewPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div
-              key={card.title}
-              className="rounded-2xl border border-[#e7e0d3] bg-white p-6 shadow-xs dark:border-[#383124] dark:bg-[#1c1914] flex items-center justify-between"
-            >
-              <div>
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  {card.title}
-                </p>
-                <h3 className="mt-1.5 text-3xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
-                  {card.value}
-                </h3>
-                <p className="mt-1 text-xs text-zinc-400">
-                  {card.sub}
-                </p>
+            <Link key={card.title} href={card.href} className="group">
+              <div className="rounded-3xl border border-[#e7e0d3] bg-white p-6 shadow-xs hover:shadow-lg transition-all dark:border-[#383124] dark:bg-[#1c1914] flex flex-col justify-between h-full">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    {card.title}
+                  </span>
+                  <div className={`p-2.5 rounded-2xl ${card.color}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="text-3xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
+                    {card.value}
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    {card.sub}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-[#f0ebe1] dark:border-[#2e281d] flex items-center justify-between text-xs font-medium text-[#C39C45] group-hover:underline">
+                  <span>Manage Records</span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                </div>
               </div>
-              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${card.color}`}>
-                <Icon className="h-6 w-6" />
-              </div>
-            </div>
+            </Link>
           );
         })}
       </div>
 
-      <div className="rounded-2xl border border-[#e7e0d3] bg-white p-6 shadow-xs dark:border-[#383124] dark:bg-[#1c1914]">
-        <div className="flex items-center justify-between pb-4 border-b border-[#f0ebe1] dark:border-[#2e281d]">
+      <div className="rounded-3xl border border-[#e7e0d3] bg-white p-6 sm:p-8 shadow-xs dark:border-[#383124] dark:bg-[#1c1914]">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-serif font-bold text-zinc-900 dark:text-zinc-100">
-              Recent Vendor Subscriptions
-            </h3>
-            <p className="text-xs text-zinc-500">
-              Verified financial transactions and vendor tier billing
+            <h2 className="text-xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
+              Recent System Transactions
+            </h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              Stripe checkout transactions for vendor memberships
             </p>
           </div>
           <Link href="/dashboard/admin/transactions">
-            <Button variant="ghost" size="sm" className="text-xs text-[#C39C45]">
-              View All <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            <Button variant="outline" size="sm" className="rounded-full text-xs">
+              View All Audits
             </Button>
           </Link>
         </div>
 
-        <div className="divide-y divide-[#f0ebe1] dark:divide-[#2e281d]">
-          {recentTransactions.map((tx) => (
-            <div key={tx.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {tx.vendorName}
-                </p>
-                <p className="text-xs text-zinc-500">{tx.vendorEmail} • {tx.subscriptionPlan}</p>
+        {recentTransactions.length === 0 ? (
+          <div className="py-10 text-center text-xs text-zinc-500">
+            No system transactions recorded yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-[#f0ebe1] dark:divide-[#2e281d]">
+            {recentTransactions.map((tx) => (
+              <div
+                key={tx._id || tx.id}
+                className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      {tx.vendorName || "Wedding Vendor"}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      {tx.plan || tx.subscriptionPlan || "Premium Plan"} - {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : "Recent"}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold font-serif text-[#C39C45]">
+                    ${tx.amount || "49.00"}
+                  </span>
+                  <span className="block text-[11px] text-emerald-600 font-medium">
+                    {tx.status || "Completed"}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-bold text-[#C39C45]">{tx.paymentAmount}</span>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                  {tx.paymentStatus}
-                </span>
-                <span className="text-xs text-zinc-400">{tx.transactionDate}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

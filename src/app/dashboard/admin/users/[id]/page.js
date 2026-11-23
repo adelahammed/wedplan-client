@@ -7,24 +7,27 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Mail,
-  Phone,
-  MapPin,
   Calendar,
   Shield,
   Trash2,
   CheckCircle2,
-  Ban
+  Ban,
+  Briefcase
 } from "lucide-react";
-import { fetchUserById, updateUserStatus, deleteUser } from "@/lib/api";
+import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteDialog } from "@/components/confirm-delete-dialog";
 import { UILoader } from "@/components/ui-loader";
 import { toast } from "sonner";
+import { useSession } from "@/lib/auth-client";
 
 export default function AdminUserDetailsPage({ params }) {
   const unwrappedParams = React.use(params);
   const id = unwrappedParams.id;
   const router = useRouter();
+
+  const { data: session } = useSession();
+  const currentUser = session?.user;
 
   const [user, setUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -32,25 +35,62 @@ export default function AdminUserDetailsPage({ params }) {
   const [actionLoading, setActionLoading] = React.useState(false);
 
   const loadUser = React.useCallback(async () => {
+    if (!currentUser || !id) return;
     try {
-      const data = await fetchUserById(id);
-      setUser(data);
+      let token = getStoredToken();
+      if (!token) {
+        token = await fetchAuthToken(currentUser);
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/users/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        cache: "no-store"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      toast.error("Failed to load user details");
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [currentUser, id]);
 
   React.useEffect(() => {
-    loadUser();
-  }, [loadUser]);
+    if (currentUser) {
+      loadUser();
+    }
+  }, [currentUser, loadUser]);
 
   const handleToggleBlock = async () => {
     if (!user) return;
-    const newStatus = user.status === "Active" ? "Blocked" : "Active";
+    const nextBlockedState = !user.isBlocked;
     try {
-      await updateUserStatus(user.id, newStatus);
-      toast.success(`User status updated to ${newStatus}`);
-      loadUser();
+      let token = getStoredToken();
+      if (!token) {
+        token = await fetchAuthToken(currentUser);
+      }
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/users/${id}/block`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ isBlocked: nextBlockedState })
+        }
+      );
+      if (res.ok) {
+        toast.success(`User is now ${nextBlockedState ? "Blocked" : "Active"}`);
+        loadUser();
+      } else {
+        toast.error("Failed to update status");
+      }
     } catch {
       toast.error("Failed to update status");
     }
@@ -60,9 +100,25 @@ export default function AdminUserDetailsPage({ params }) {
     if (!user) return;
     setActionLoading(true);
     try {
-      await deleteUser(user.id);
-      toast.success("User permanently deleted");
-      router.push("/dashboard/admin/users");
+      let token = getStoredToken();
+      if (!token) {
+        token = await fetchAuthToken(currentUser);
+      }
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/users/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      if (res.ok) {
+        toast.success("User removed successfully");
+        router.push("/dashboard/admin/users");
+      } else {
+        toast.error("Failed to delete user");
+      }
     } catch {
       toast.error("Failed to delete user");
     } finally {
@@ -73,145 +129,166 @@ export default function AdminUserDetailsPage({ params }) {
   if (loading) {
     return (
       <UILoader
-        message="Loading User Profile"
-        subtext="Fetching user credentials, account history, and status..."
+        message="Loading User Record"
+        subtext="Fetching member security history and permissions..."
       />
     );
   }
 
   if (!user) {
     return (
-      <div className="py-16 text-center space-y-4">
+      <div className="py-20 text-center">
         <h3 className="text-xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
-          User Not Found
+          User Record Not Found
         </h3>
-        <p className="text-sm text-zinc-500">The user account does not exist or was deleted.</p>
-        <Link href="/dashboard/admin/users">
-          <Button variant="outline">Return to Users List</Button>
+        <p className="mt-2 text-sm text-zinc-500">
+          The requested user account may have been deleted.
+        </p>
+        <Link href="/dashboard/admin/users" className="mt-4 inline-block">
+          <Button variant="outline" className="rounded-full">
+            Back to Users Directory
+          </Button>
         </Link>
       </div>
     );
   }
 
+  const isBlocked = Boolean(user.isBlocked);
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
         <Link
           href="/dashboard/admin/users"
-          className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-[#C39C45] transition mb-4"
+          className="inline-flex items-center gap-2 text-sm text-zinc-600 hover:text-[#C39C45] transition-colors dark:text-zinc-400"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to Manage Users</span>
+          <span>Back to All Users</span>
         </Link>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-widest text-[#C39C45]">
-              Account Record
-            </span>
-            <h1 className="text-3xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
-              User Profile: {user.name}
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2">
+          {user.role?.toLowerCase() !== "admin" && (
             <Button
               variant="outline"
+              size="sm"
               onClick={handleToggleBlock}
-              className={`rounded-full ${
-                user.status === "Active"
-                  ? "border-amber-300 text-amber-700 hover:bg-amber-50"
-                  : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              className={`rounded-full text-xs font-semibold ${
+                isBlocked
+                  ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  : "border-amber-300 text-amber-700 hover:bg-amber-50"
               }`}
             >
-              {user.status === "Active" ? (
-                <span className="flex items-center gap-2">
-                  <Ban className="h-4 w-4" />
-                  Block Account
-                </span>
+              {isBlocked ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                  <span>Unblock Account</span>
+                </>
               ) : (
-                <span className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Unblock Account
-                </span>
+                <>
+                  <Ban className="h-3.5 w-3.5 mr-1" />
+                  <span>Block Account</span>
+                </>
               )}
             </Button>
+          )}
+
+          {user.role?.toLowerCase() !== "admin" && (
             <Button
-              variant="destructive"
+              variant="outline"
+              size="sm"
               onClick={() => setDeleteDialogOpen(true)}
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center gap-2"
+              className="rounded-full text-xs text-red-600 border-red-200 hover:bg-red-50"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
               <span>Delete User</span>
             </Button>
-          </div>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="rounded-3xl border border-[#e7e0d3] bg-white p-6 shadow-xs text-center dark:border-[#383124] dark:bg-[#1c1914]">
-          <div className="relative mx-auto h-28 w-28 rounded-full overflow-hidden bg-[#f6efe2] text-[#C39C45] flex items-center justify-center font-serif text-3xl font-bold shadow-md">
+      <div className="rounded-3xl border border-[#e7e0d3] bg-white p-6 sm:p-8 shadow-xs dark:border-[#383124] dark:bg-[#1c1914]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-[#f0ebe1] dark:border-[#2e281d]">
+          <div className="relative h-20 w-20 rounded-full overflow-hidden bg-[#f6efe2] text-[#C39C45] flex items-center justify-center font-serif font-bold text-3xl">
             {user.image ? (
-              <Image src={user.image} alt={user.name} fill className="object-cover" />
+              <Image
+                src={user.image}
+                alt={user.name || "User"}
+                fill
+                className="object-cover"
+              />
             ) : (
-              <span>{user.name[0]}</span>
+              <span>{(user.name || "U")[0].toUpperCase()}</span>
             )}
           </div>
-          <h2 className="mt-4 text-xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
-            {user.name}
-          </h2>
-          <p className="text-xs text-zinc-500 mt-1">{user.email}</p>
-          <div className="mt-4 flex justify-center gap-2">
-            <span className="rounded-full bg-[#f6efe2] px-3 py-1 text-xs font-semibold text-[#C39C45] dark:bg-[#29241b]">
-              {user.role}
-            </span>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                user.status === "Active"
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-                  : "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
-              }`}
-            >
-              {user.status}
-            </span>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
+                {user.name || "Anonymous Member"}
+              </h1>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  user.role?.toLowerCase() === "admin"
+                    ? "bg-purple-50 text-purple-700"
+                    : user.role?.toLowerCase() === "vendor"
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-blue-50 text-blue-700"
+                }`}
+              >
+                {user.role ? user.role.toUpperCase() : "CUSTOMER"}
+              </span>
+            </div>
+            <p className="text-sm text-zinc-500">{user.email}</p>
           </div>
         </div>
 
-        <div className="md:col-span-2 rounded-3xl border border-[#e7e0d3] bg-white p-7 shadow-xs space-y-6 dark:border-[#383124] dark:bg-[#1c1914]">
-          <div>
-            <h3 className="text-base font-serif font-bold text-zinc-900 dark:text-zinc-50 border-b border-[#f0ebe1] dark:border-[#2e281d] pb-3">
-              User Information & Bio
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
+          <div className="space-y-4">
+            <h3 className="text-xs uppercase tracking-widest font-semibold text-zinc-400">
+              Account Attributes
             </h3>
-            <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
-              {user.bio || "No biography provided for this user."}
-            </p>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Account ID:</span>
+                <span className="font-mono text-xs">{user._id}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Status:</span>
+                <span className={`font-semibold ${isBlocked ? "text-red-600" : "text-emerald-600"}`}>
+                  {isBlocked ? "Blocked" : "Active"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Subscription Plan:</span>
+                <span className="font-semibold text-[#C39C45]">
+                  {user.subscriptionPlan ? user.subscriptionPlan.toUpperCase() : "FREE"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Registration Date:</span>
+                <span>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Recent"}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#fdfbf7] dark:bg-[#14120e] border border-[#e7e0d3] dark:border-[#383124]">
-              <Mail className="h-5 w-5 text-[#C39C45]" />
-              <div>
-                <span className="text-[11px] text-zinc-400 block">Email Address</span>
-                <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">{user.email}</span>
+          <div className="space-y-4">
+            <h3 className="text-xs uppercase tracking-widest font-semibold text-zinc-400">
+              Activity & Metrics
+            </h3>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Published Services:</span>
+                <span className="font-semibold">{user.servicesCount || 0}</span>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#fdfbf7] dark:bg-[#14120e] border border-[#e7e0d3] dark:border-[#383124]">
-              <Phone className="h-5 w-5 text-[#C39C45]" />
-              <div>
-                <span className="text-[11px] text-zinc-400 block">Phone Number</span>
-                <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">{user.phone || "+1 (555) 000-0000"}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Booking Requests:</span>
+                <span className="font-semibold">{user.bookingsCount || 0}</span>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#fdfbf7] dark:bg-[#14120e] border border-[#e7e0d3] dark:border-[#383124]">
-              <MapPin className="h-5 w-5 text-[#C39C45]" />
-              <div>
-                <span className="text-[11px] text-zinc-400 block">Location City</span>
-                <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">{user.city || "Not specified"}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#fdfbf7] dark:bg-[#14120e] border border-[#e7e0d3] dark:border-[#383124]">
-              <Calendar className="h-5 w-5 text-[#C39C45]" />
-              <div>
-                <span className="text-[11px] text-zinc-400 block">Registration Date</span>
-                <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">{user.registeredDate}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">Business Name:</span>
+                <span>{user.businessName || "Not Provided"}</span>
               </div>
             </div>
           </div>
@@ -221,10 +298,11 @@ export default function AdminUserDetailsPage({ params }) {
       <ConfirmDeleteDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title={`Delete User "${user.name}"?`}
-        description="Are you sure you want to permanently delete this user? This will revoke all their platform access immediately."
-        onConfirm={handleConfirmDelete}
+        title="Remove Member Account?"
+        description={`Are you sure you want to delete ${user?.name}? This action will permanently remove their records.`}
+        confirmText="Yes, Delete Account"
         loading={actionLoading}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
