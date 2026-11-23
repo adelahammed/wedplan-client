@@ -30,7 +30,6 @@ function BrowseServicesContent() {
   const [selectedCategory, setSelectedCategory] =
     React.useState(initialCategory);
   const [selectedLocation, setSelectedLocation] = React.useState("All");
-  const [sortBy, setSortBy] = React.useState("featured");
 
   const locations = [
     "All",
