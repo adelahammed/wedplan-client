@@ -43,42 +43,59 @@ export default function ServiceDetailsPage({ params }) {
   const [message, setMessage] = React.useState("");
 
   React.useEffect(() => {
+    let active = true;
+
     if (!sessionLoading && !session?.user) {
       router.push(`/signin?callbackUrl=/services/${id}`);
+      return;
     }
-  }, [session, sessionLoading, id, router]);
 
-  React.useEffect(() => {
-    async function loadService() {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/services/${id}`,
-          {
-            cache: "no-store",
-          },
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setService(data);
-          if (Array.isArray(data?.images) && data.images.length > 0) {
-            setSelectedImage(data.images[0]);
-          } else if (data?.image) {
-            setSelectedImage(data.image);
+    if (id && session?.user) {
+      Promise.resolve().then(async () => {
+        try {
+          let token = getStoredToken();
+          if (!token) {
+            token = await fetchAuthToken(session.user);
           }
-        } else {
-          setService(null);
+          const headers = {};
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_SERVER_URL}/services/${id}`,
+            {
+              headers,
+              cache: "no-store",
+            },
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (active) {
+              setService(data);
+              if (Array.isArray(data?.images) && data.images.length > 0) {
+                setSelectedImage(data.images[0]);
+              } else if (data?.image) {
+                setSelectedImage(data.image);
+              }
+            }
+          } else {
+            if (res.status === 401 || res.status === 403) {
+              router.push(`/signin?callbackUrl=/services/${id}`);
+            }
+            if (active) setService(null);
+          }
+        } catch {
+          if (active) setService(null);
+        } finally {
+          if (active) setLoading(false);
         }
-      } catch {
-        setService(null);
-      } finally {
-        setLoading(false);
-      }
+      });
     }
-    if (id) {
-      loadService();
-    }
-  }, [id]);
+
+    return () => {
+      active = false;
+    };
+  }, [id, session, sessionLoading, router]);
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
