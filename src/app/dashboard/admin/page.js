@@ -76,7 +76,7 @@ export default function AdminOverviewPage() {
       value: stats.totalUsers,
       sub: `${stats.totalVendors} vendors, ${stats.totalCustomers} customers`,
       icon: Users,
-      href: "/dashboard/admin/users",
+      href: "/dashboard/admin/users?role=All",
       color: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
     },
     {
@@ -84,7 +84,7 @@ export default function AdminOverviewPage() {
       value: stats.totalVendors,
       sub: "Active wedding artisans & venues",
       icon: UserCheck,
-      href: "/dashboard/admin/users",
+      href: "/dashboard/admin/users?role=Vendor",
       color: "bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400"
     },
     {
@@ -92,7 +92,7 @@ export default function AdminOverviewPage() {
       value: stats.totalCustomers,
       sub: "Engaged couples & planners",
       icon: Users,
-      href: "/dashboard/admin/users",
+      href: "/dashboard/admin/users?role=Customer",
       color: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400"
     },
     {
@@ -100,7 +100,7 @@ export default function AdminOverviewPage() {
       value: stats.totalServices,
       sub: "Catalog wedding packages",
       icon: Briefcase,
-      href: "/dashboard/admin/services",
+      href: "/dashboard/admin/services?status=All",
       color: "bg-[#f6efe2] text-[#C39C45] dark:bg-[#29241b] dark:text-[#C39C45]"
     },
     {
@@ -108,7 +108,7 @@ export default function AdminOverviewPage() {
       value: stats.pendingServices,
       sub: "Awaiting moderator review",
       icon: Clock,
-      href: "/dashboard/admin/services",
+      href: "/dashboard/admin/services?status=Pending",
       color: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
     },
     {

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Calendar,
   MapPin,
@@ -20,7 +21,18 @@ import { UILoader } from "@/components/ui-loader";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 
-export default function CustomerBookingsPage() {
+function CustomerBookingsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get("status");
+  const [manualFilter, setManualFilter] = React.useState(null);
+  const activeFilter =
+    manualFilter || (statusParam ? statusParam.toLowerCase() : "all");
+
+  const setActiveFilter = (f) => {
+    setManualFilter(f);
+  };
+
   const { data: session } = useSession();
   const user = session?.user;
 
@@ -56,7 +68,7 @@ export default function CustomerBookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, setBookings]);
 
   React.useEffect(() => {
     let active = true;
@@ -108,6 +120,37 @@ export default function CustomerBookingsPage() {
     }
   };
 
+  const filteredBookings = bookings.filter((b) => {
+    const status = (b.status || "pending").toLowerCase();
+    if (activeFilter === "pending") return status === "pending";
+    if (activeFilter === "accepted") return status === "accepted";
+    if (activeFilter === "rejected") {
+      return status === "rejected" || status === "cancelled";
+    }
+    return true;
+  });
+
+  const filterTabs = [
+    { id: "all", label: "Total Booking Requests", count: bookings.length },
+    {
+      id: "pending",
+      label: "Pending Bookings",
+      count: bookings.filter((b) => (b.status || "pending").toLowerCase() === "pending").length,
+    },
+    {
+      id: "accepted",
+      label: "Accepted Bookings",
+      count: bookings.filter((b) => (b.status || "").toLowerCase() === "accepted").length,
+    },
+    {
+      id: "rejected",
+      label: "Rejected Bookings",
+      count: bookings.filter(
+        (b) => (b.status || "").toLowerCase() === "rejected" || (b.status || "").toLowerCase() === "cancelled"
+      ).length,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -119,8 +162,7 @@ export default function CustomerBookingsPage() {
             My Wedding Bookings
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Review status updates and event schedules for your booked wedding
-            vendors.
+            Review status updates and event schedules for your booked wedding vendors.
           </p>
         </div>
         <Link href="/services">
@@ -130,22 +172,43 @@ export default function CustomerBookingsPage() {
         </Link>
       </div>
 
+      <div className="flex flex-wrap gap-2 border-b border-[#e7e0d3] pb-4 dark:border-[#383124]">
+        {filterTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => {
+              setActiveFilter(tab.id);
+              router.push(`/dashboard/customer/bookings?status=${tab.id}`, { scroll: false });
+            }}
+            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+              activeFilter === tab.id
+                ? "bg-[#C39C45] text-white shadow-sm"
+                : "bg-white text-zinc-600 hover:bg-[#f6efe2] hover:text-[#C39C45] dark:bg-[#1c1914] dark:text-zinc-400"
+            }`}
+          >
+            {tab.label} ({tab.count})
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <UILoader
           message="Loading Your Bookings"
           subtext="Fetching reserved wedding dates, vendor contracts, and notes..."
         />
-      ) : bookings.length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <div className="my-12 rounded-3xl border border-dashed border-[#e7e0d3] bg-white p-12 text-center dark:border-[#383124] dark:bg-[#1c1914]">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#f6efe2] text-[#C39C45] dark:bg-[#29241b]">
             <CalendarHeart className="h-8 w-8" />
           </div>
           <h3 className="mt-4 text-xl font-serif font-bold text-zinc-900 dark:text-zinc-100">
-            No Bookings Added
+            No Bookings Found
           </h3>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto">
-            You have not submitted any wedding vendor inquiries yet. Browse our
-            verified venues and artisans to get started.
+            {activeFilter === "all"
+              ? "You have not submitted any wedding vendor inquiries yet. Browse our verified venues and artisans to get started."
+              : `No bookings found matching the "${activeFilter}" filter.`}
           </p>
           <div className="mt-6">
             <Link href="/services">
@@ -158,11 +221,11 @@ export default function CustomerBookingsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bookings.map((b) => {
-            const isPending = b.status?.toLowerCase() === "pending";
-            const isAccepted = b.status?.toLowerCase() === "accepted";
-            const isCancelled = b.status?.toLowerCase() === "cancelled";
-            const isRejected = b.status?.toLowerCase() === "rejected";
+          {filteredBookings.map((b) => {
+            const isPending = (b.status || "pending").toLowerCase() === "pending";
+            const isAccepted = (b.status || "").toLowerCase() === "accepted";
+            const isCancelled = (b.status || "").toLowerCase() === "cancelled";
+            const isRejected = (b.status || "").toLowerCase() === "rejected";
 
             return (
               <div
@@ -188,8 +251,8 @@ export default function CustomerBookingsPage() {
                           isAccepted
                             ? "bg-emerald-600 text-white"
                             : isCancelled || isRejected
-                              ? "bg-red-600 text-white"
-                              : "bg-amber-500 text-white"
+                            ? "bg-red-600 text-white"
+                            : "bg-amber-500 text-white"
                         }`}
                       >
                         {b.status ? b.status.toUpperCase() : "PENDING"}
@@ -234,23 +297,24 @@ export default function CustomerBookingsPage() {
                       <p className="font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
                         {b.vendorName || "Wedding Vendor"}
                       </p>
-                      <p className="text-zinc-500 text-[11px]">
-                        {b.vendorEmail || ""}
-                      </p>
+                      <p className="text-zinc-500 text-[11px]">{b.vendorEmail || ""}</p>
                     </div>
+
+                    {b.message && (
+                      <p className="text-xs text-zinc-500 italic bg-zinc-50 dark:bg-zinc-900 p-2.5 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                        &ldquo;{b.message}&rdquo;
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="p-5 pt-0  border-[#f0ebe1] dark:border-[#2e281d] mt-2 flex items-center justify-between gap-2">
-                  <Link href={`/services/${b.serviceId}`} target="_blank">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl text-xs flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      <span>View Service</span>
-                    </Button>
+                <div className="p-5 pt-0 border-t border-[#f0ebe1] dark:border-[#2e281d] mt-2 flex items-center justify-between gap-2">
+                  <Link
+                    href={`/services/${b.serviceId}`}
+                    className="text-xs font-semibold text-[#C39C45] hover:underline flex items-center gap-1"
+                  >
+                    <span>View Offering</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
                   </Link>
 
                   {isPending && (
@@ -258,10 +322,10 @@ export default function CustomerBookingsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => openCancelDialog(b)}
-                      className="rounded-xl text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-1"
+                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 h-8 px-2.5 rounded-lg"
                     >
-                      <Ban className="h-3.5 w-3.5" />
-                      <span>Cancel</span>
+                      <Ban className="h-3.5 w-3.5 mr-1" />
+                      Cancel Request
                     </Button>
                   )}
                 </div>
@@ -274,12 +338,29 @@ export default function CustomerBookingsPage() {
       <ConfirmDeleteDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title="Cancel Wedding Booking Inquiry?"
-        description={`Are you sure you want to cancel your booking request for "${bookingToCancel?.serviceName}"? This action cannot be reversed.`}
+        title="Cancel Booking Request?"
+        description={`Are you sure you want to withdraw your booking inquiry for "${bookingToCancel?.serviceName}"?`}
         confirmText="Yes, Cancel Booking"
         loading={actionLoading}
         onConfirm={handleConfirmCancel}
       />
     </div>
+  );
+}
+
+export default function CustomerBookingsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="py-24">
+          <UILoader
+            message="Loading Bookings"
+            subtext="Please wait..."
+          />
+        </div>
+      }
+    >
+      <CustomerBookingsContent />
+    </React.Suspense>
   );
 }

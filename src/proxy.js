@@ -60,6 +60,19 @@ export async function proxy(request) {
       return NextResponse.redirect(redirectUrl);
     }
 
+    if (isPayment) {
+      if (role !== "vendor") {
+        return NextResponse.redirect(new URL(`/dashboard/${role}`, request.url));
+      }
+
+      if (
+        (pathname === "/payment/success" || pathname === "/payment/cancel") &&
+        !request.nextUrl.searchParams.get("session_id")
+      ) {
+        return NextResponse.redirect(new URL("/dashboard/vendor", request.url));
+      }
+    }
+
     if (isDashboard) {
       if (pathname === "/dashboard" || pathname === "/dashboard/") {
         return NextResponse.redirect(new URL(`/dashboard/${role}`, request.url));

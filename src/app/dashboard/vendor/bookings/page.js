@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Calendar,
   MapPin,
@@ -11,7 +12,7 @@ import {
   Mail,
   User,
   CalendarHeart,
-  MessageSquare
+  MessageSquare,
 } from "lucide-react";
 import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,18 @@ import { UILoader, ButtonLoader } from "@/components/ui-loader";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 
-export default function VendorBookingsPage() {
+function VendorBookingsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get("status");
+  const [manualFilter, setManualFilter] = React.useState(null);
+  const activeFilter =
+    manualFilter || (statusParam ? statusParam.toLowerCase() : "all");
+
+  const setActiveFilter = (f) => {
+    setManualFilter(f);
+  };
+
   const { data: session } = useSession();
   const user = session?.user;
 
@@ -53,7 +65,7 @@ export default function VendorBookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, setBookings]);
 
   React.useEffect(() => {
     let active = true;
@@ -103,6 +115,37 @@ export default function VendorBookingsPage() {
     }
   };
 
+  const filteredBookings = bookings.filter((b) => {
+    const status = (b.status || "pending").toLowerCase();
+    if (activeFilter === "pending") return status === "pending";
+    if (activeFilter === "accepted") return status === "accepted";
+    if (activeFilter === "cancelled" || activeFilter === "rejected") {
+      return status === "cancelled" || status === "rejected";
+    }
+    return true;
+  });
+
+  const filterTabs = [
+    { id: "all", label: "All Requests", count: bookings.length },
+    {
+      id: "pending",
+      label: "Pending",
+      count: bookings.filter((b) => (b.status || "pending").toLowerCase() === "pending").length,
+    },
+    {
+      id: "accepted",
+      label: "Accepted",
+      count: bookings.filter((b) => (b.status || "").toLowerCase() === "accepted").length,
+    },
+    {
+      id: "cancelled",
+      label: "Cancelled / Rejected",
+      count: bookings.filter(
+        (b) => (b.status || "").toLowerCase() === "cancelled" || (b.status || "").toLowerCase() === "rejected"
+      ).length,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -119,30 +162,52 @@ export default function VendorBookingsPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2 border-b border-[#e7e0d3] pb-4 dark:border-[#383124]">
+        {filterTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => {
+              setActiveFilter(tab.id);
+              router.push(`/dashboard/vendor/bookings?status=${tab.id}`, { scroll: false });
+            }}
+            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+              activeFilter === tab.id
+                ? "bg-[#C39C45] text-white shadow-sm"
+                : "bg-white text-zinc-600 hover:bg-[#f6efe2] hover:text-[#C39C45] dark:bg-[#1c1914] dark:text-zinc-400"
+            }`}
+          >
+            {tab.label} ({tab.count})
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <UILoader
           message="Loading Booking Requests"
           subtext="Fetching customer inquiries and event logistics..."
         />
-      ) : bookings.length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <div className="my-12 rounded-3xl border border-dashed border-[#e7e0d3] bg-white p-12 text-center dark:border-[#383124] dark:bg-[#1c1914]">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#f6efe2] text-[#C39C45] dark:bg-[#29241b]">
             <CalendarHeart className="h-8 w-8" />
           </div>
           <h3 className="mt-4 text-xl font-serif font-bold text-zinc-900 dark:text-zinc-100">
-            No Booking Requests
+            No Booking Requests Found
           </h3>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto">
-            You currently have no client requests. Ensure your services are active and high quality to attract bookings.
+            {activeFilter === "all"
+              ? "You currently have no client requests. Ensure your services are active and high quality to attract bookings."
+              : `No booking requests matching the "${activeFilter}" filter.`}
           </p>
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((b) => {
-            const isPending = b.status?.toLowerCase() === "pending";
-            const isAccepted = b.status?.toLowerCase() === "accepted";
-            const isRejected = b.status?.toLowerCase() === "rejected";
-            const isCancelled = b.status?.toLowerCase() === "cancelled";
+          {filteredBookings.map((b) => {
+            const isPending = (b.status || "pending").toLowerCase() === "pending";
+            const isAccepted = (b.status || "").toLowerCase() === "accepted";
+            const isRejected = (b.status || "").toLowerCase() === "rejected";
+            const isCancelled = (b.status || "").toLowerCase() === "cancelled";
 
             return (
               <div
@@ -201,55 +266,65 @@ export default function VendorBookingsPage() {
                     </div>
 
                     {b.message && (
-                      <div className="flex items-start gap-1.5 text-xs text-zinc-500 bg-[#fdfbf7] p-2.5 rounded-xl border border-[#f0ebe1] dark:bg-[#14120e] dark:border-[#2e281d] mt-2">
+                      <div className="rounded-xl bg-[#fdfbf7] p-3 border border-[#f0ebe1] text-xs text-zinc-600 dark:bg-[#14120e] dark:border-[#2e281d] dark:text-zinc-300 mt-2 flex items-start gap-2">
                         <MessageSquare className="h-3.5 w-3.5 text-[#C39C45] shrink-0 mt-0.5" />
-                        <span className="italic">&ldquo;{b.message}&rdquo;</span>
+                        <p className="italic">&ldquo;{b.message}&rdquo;</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="shrink-0 flex items-center gap-2.5 w-full lg:w-auto justify-end border-t lg:border-t-0 pt-4 lg:pt-0 border-[#f0ebe1] dark:border-[#2e281d]">
-                  {isPending ? (
-                    <>
-                      <Button
-                        size="sm"
-                        disabled={actionLoadingId === b._id}
-                        onClick={() => handleUpdateStatus(b, "Accepted")}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4"
-                      >
-                        {actionLoadingId === b._id ? (
-                          <ButtonLoader text="Updating..." />
-                        ) : (
-                          <span className="flex items-center gap-1.5">
-                            <Check className="h-3.5 w-3.5" />
-                            <span>Accept Request</span>
-                          </span>
-                        )}
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={actionLoadingId === b._id}
-                        onClick={() => handleUpdateStatus(b, "Rejected")}
-                        className="rounded-xl text-xs text-red-600 border-red-200 hover:bg-red-50 px-4"
-                      >
-                        <X className="h-3.5 w-3.5 mr-1" />
-                        <span>Decline</span>
-                      </Button>
-                    </>
-                  ) : (
-                    <span className="text-xs font-medium text-zinc-400 italic">
-                      Processed ({b.status})
-                    </span>
-                  )}
-                </div>
+                {isPending && (
+                  <div className="flex items-center gap-2 w-full lg:w-auto shrink-0 pt-2 lg:pt-0">
+                    <Button
+                      size="sm"
+                      disabled={actionLoadingId === b._id}
+                      onClick={() => handleUpdateStatus(b, "Accepted")}
+                      className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 flex-1 lg:flex-none"
+                    >
+                      {actionLoadingId === b._id ? (
+                        <ButtonLoader text="Updating..." />
+                      ) : (
+                        <span className="flex items-center gap-1.5">
+                          <Check className="h-4 w-4" />
+                          <span>Accept Booking</span>
+                        </span>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionLoadingId === b._id}
+                      onClick={() => handleUpdateStatus(b, "Rejected")}
+                      className="rounded-full border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40 flex-1 lg:flex-none"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      <span>Reject</span>
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
     </div>
+  );
+}
+
+export default function VendorBookingsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="py-24">
+          <UILoader
+            message="Loading Booking Requests"
+            subtext="Please wait..."
+          />
+        </div>
+      }
+    >
+      <VendorBookingsContent />
+    </React.Suspense>
   );
 }

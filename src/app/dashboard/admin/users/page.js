@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   UserX,
@@ -22,14 +23,30 @@ import { UILoader } from "@/components/ui-loader";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 
-export default function AdminUsersPage() {
+function AdminUsersContent() {
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get("role");
+  const [manualRole, setManualRole] = React.useState(null);
+  const roleFilter =
+    manualRole ||
+    (roleParam
+      ? roleParam.toLowerCase() === "vendor"
+        ? "Vendor"
+        : roleParam.toLowerCase() === "customer"
+        ? "Customer"
+        : "All"
+      : "All");
+
   const { data: session } = useSession();
   const currentUser = session?.user;
 
   const [users, setUsers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
-  const [roleFilter, setRoleFilter] = React.useState("All");
+
+  const setRoleFilter = (r) => {
+    setManualRole(r);
+  };
 
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [userToDelete, setUserToDelete] = React.useState(null);
@@ -64,7 +81,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, search, roleFilter]);
+  }, [currentUser, search, roleFilter, setUsers]);
 
   React.useEffect(() => {
     let active = true;
@@ -354,5 +371,22 @@ export default function AdminUsersPage() {
         onConfirm={handleConfirmDelete}
       />
     </div>
+  );
+}
+
+export default function AdminUsersPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="py-24">
+          <UILoader
+            message="Loading User Directory"
+            subtext="Please wait..."
+          />
+        </div>
+      }
+    >
+      <AdminUsersContent />
+    </React.Suspense>
   );
 }

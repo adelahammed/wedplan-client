@@ -80,7 +80,7 @@ export default function VendorOverviewPage() {
       value: stats.totalServices,
       sub: "Published wedding offerings",
       icon: Briefcase,
-      href: "/dashboard/vendor/services",
+      href: "/dashboard/vendor/services?status=all",
       color: "bg-[#f6efe2] text-[#C39C45] dark:bg-[#29241b]"
     },
     {
@@ -88,7 +88,7 @@ export default function VendorOverviewPage() {
       value: stats.activeServices,
       sub: "Live on platform catalog",
       icon: CheckCircle2,
-      href: "/dashboard/vendor/services",
+      href: "/dashboard/vendor/services?status=active",
       color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
     },
     {
@@ -96,7 +96,7 @@ export default function VendorOverviewPage() {
       value: stats.pendingBookings,
       sub: "Awaiting your acceptance",
       icon: Clock,
-      href: "/dashboard/vendor/bookings",
+      href: "/dashboard/vendor/bookings?status=pending",
       color: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
     },
     {
@@ -104,7 +104,7 @@ export default function VendorOverviewPage() {
       value: stats.acceptedBookings,
       sub: "Confirmed client ceremonies",
       icon: TrendingUp,
-      href: "/dashboard/vendor/bookings",
+      href: "/dashboard/vendor/bookings?status=accepted",
       color: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
     }
   ];

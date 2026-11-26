@@ -2,19 +2,36 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { CreditCard, ShieldCheck, ArrowLeft, Lock } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CreditCard, ShieldCheck, ArrowLeft, Lock, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/auth-client";
+import { UILoader } from "@/components/ui-loader";
 
 function PaymentContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
 
   const planName = searchParams.get("plan") || "Platinum Signature Vendor Plan";
-
   const amount = Number(searchParams.get("amount") || "150.00");
   const canceled = searchParams.get("canceled");
 
   const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isPending) {
+      if (!user) {
+        router.push("/signin?callbackUrl=/payment");
+        return;
+      }
+      const role = (user.role || "").toLowerCase();
+      if (role !== "vendor") {
+        router.push(`/dashboard/${role || "customer"}`);
+      }
+    }
+  }, [user, isPending, router]);
 
   const handleCheckout = async () => {
     if (!Number.isFinite(amount) || amount <= 0) return;
@@ -42,6 +59,17 @@ function PaymentContent() {
     form.submit();
   };
 
+  if (isPending || !user) {
+    return (
+      <div className="py-24">
+        <UILoader
+          text="Verifying vendor access..."
+          subtext="Confirming checkout credentials..."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="py-12 sm:py-16 bg-[#fdfbf7] dark:bg-[#14120e] min-h-[85vh]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -54,10 +82,21 @@ function PaymentContent() {
         </Link>
 
         {canceled && (
-          <p className="mb-5 text-sm text-amber-600">
-            Payment canceled. Please try again.
-          </p>
+          <div className="mb-6 rounded-2xl bg-amber-50 p-4 border border-amber-200 text-amber-800 text-sm flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>Payment checkout was cancelled. You can review your subscription options below whenever you are ready.</span>
+          </div>
         )}
+
+        <div className="mb-6 rounded-2xl bg-[#f6efe2] p-4 border border-[#e7e0d3] dark:bg-[#252016] dark:border-[#383124]">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#C39C45]">
+            <Sparkles className="h-4 w-4" />
+            <span>Free Tier Notice</span>
+          </div>
+          <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">
+            You are currently on the Free plan (maximum 3 services). Purchasing the Lifetime Premium Package ($150) grants unlimited active wedding offerings, gold verification seal, and priority vendor catalog placement.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           <div className="md:col-span-7 rounded-3xl border border-[#e7e0d3] bg-white p-6 sm:p-8 shadow-xl dark:border-[#383124] dark:bg-[#1c1914]">
@@ -68,7 +107,7 @@ function PaymentContent() {
                   Secure Checkout
                 </h2>
                 <p className="text-xs text-zinc-500">
-                  Secure payment powered by Stripe
+                  Encrypted payment powered by Stripe
                 </p>
               </div>
             </div>
@@ -82,8 +121,7 @@ function PaymentContent() {
                   </h3>
                 </div>
                 <p className="text-sm text-zinc-500">
-                  Complete your subscription payment through Stripe&apos;s secure
-                  checkout page.
+                  Complete your vendor lifetime upgrade securely through Stripe&apos;s checkout page.
                 </p>
               </div>
 
@@ -93,12 +131,12 @@ function PaymentContent() {
                 className="w-full h-12 rounded-xl bg-[#C39C45] hover:bg-[#ad8735] text-white"
               >
                 <Lock className="h-4 w-4 mr-2" />
-                {loading ? "Redirecting..." : `Pay $${amount.toFixed(2)}`}
+                {loading ? "Redirecting to Stripe..." : `Upgrade Now for $${amount.toFixed(2)}`}
               </Button>
 
               <div className="flex justify-center items-center gap-2 text-xs text-zinc-500">
                 <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                Secure SSL Encrypted Checkout
+                Secure 256-bit SSL Encrypted Stripe Checkout
               </div>
             </div>
           </div>
@@ -113,15 +151,19 @@ function PaymentContent() {
                 {planName}
               </h3>
               <p className="text-xs text-zinc-500 mt-1">
-                Full-featured luxury vendor membership with priority client
-                dispatch.
+                Lifetime luxury vendor membership with unlimited service publishing privileges.
               </p>
             </div>
 
             <div className="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
               <div className="flex justify-between">
-                <span>Subtotal</span>
+                <span>Package Price</span>
                 <span>${amount.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Billing Period</span>
+                <span>Lifetime</span>
               </div>
 
               <div className="flex justify-between">
@@ -138,10 +180,10 @@ function PaymentContent() {
             <div className="rounded-2xl bg-white p-4 border border-[#e7e0d3] dark:bg-[#14120e] dark:border-[#383124]">
               <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-semibold text-sm">
                 <ShieldCheck className="h-4 w-4" />
-                Satisfaction Guarantee
+                Lifetime Guarantee
               </div>
               <p className="text-xs text-zinc-500 mt-2">
-                Cancel or modify your subscription at any time.
+                One-time payment with zero renewal charges or recurring fees.
               </p>
             </div>
           </div>

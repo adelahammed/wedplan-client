@@ -10,27 +10,80 @@ import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ButtonLoader } from "@/components/ui-loader";
+import { ButtonLoader, UILoader } from "@/components/ui-loader";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
+
+const DHAKA_LOCATIONS = [
+  "Gulshan, Dhaka",
+  "Mirpur, Dhaka",
+  "Bashundhara, Dhaka",
+  "Uttara, Dhaka",
+  "Banani, Dhaka",
+  "Dhanmondi, Dhaka",
+  "Mohammadpur, Dhaka",
+  "New Market, Dhaka",
+  "Dhaka, Bangladesh",
+];
 
 export default function VendorAddServicePage() {
   const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user;
 
+  const [checkingLimit, setCheckingLimit] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [name, setName] = React.useState("");
   const [category, setCategory] = React.useState(MOCK_CATEGORIES[0].name);
   const [description, setDescription] = React.useState("");
   const [price, setPrice] = React.useState("");
-  const [location, setLocation] = React.useState("");
+  const [location, setLocation] = React.useState(DHAKA_LOCATIONS[0]);
 
   const [imageFiles, setImageFiles] = React.useState([]);
   const [finalImages, setFinalImages] = React.useState([]);
   const [imagePreviews, setImagePreviews] = React.useState([]);
-
   const [uploading, setUploading] = React.useState(false);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!user?.email) return;
+
+    Promise.resolve().then(async () => {
+      try {
+        let token = getStoredToken();
+        if (!token) {
+          token = await fetchAuthToken(user);
+        }
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/services/vendor/${user.email}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          }
+        );
+        if (res.ok) {
+          const list = await res.json();
+          const isPremium = Boolean(user.premium || user.subscriptionPlan === "Premium");
+          if (!isPremium && Array.isArray(list) && list.length >= 3) {
+            toast.error("Free plan limit reached (maximum 3 services). Upgrade to Premium to list more services.");
+            router.push("/payment?plan=Platinum+Signature&amount=150");
+            return;
+          }
+        }
+      } catch {
+      } finally {
+        if (active) {
+          setCheckingLimit(false);
+        }
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [user, router]);
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -149,18 +202,35 @@ export default function VendorAddServicePage() {
       );
       const data = await result.json();
 
+      if (result.status === 403 || data.limitReached) {
+        toast.error(data.message || "Free plan limit reached. Upgrade to Premium.");
+        router.push("/payment?plan=Platinum+Signature&amount=150");
+        return;
+      }
+
       if (result.ok && (data.acknowledged || data.insertedId || data.success)) {
         toast.success("Service submitted successfully and is pending approval!");
         router.push("/dashboard/vendor/services");
       } else {
         toast.error(data.message || "Failed to add service. Please try again.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong. Please check your connection.");
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (checkingLimit) {
+    return (
+      <div className="py-24">
+        <UILoader
+          text="Verifying subscription tier..."
+          subtext="Checking available service slots for your vendor account."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -180,13 +250,13 @@ export default function VendorAddServicePage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Service Name *
+              Service Package Name *
             </label>
             <Input
               required
               name="name"
               disabled={submitting}
-              placeholder="e.g. Celestial Ballroom Grand Reception Package"
+              placeholder="e.g. Grand Crystal Ballroom Wedding Package"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
@@ -200,14 +270,13 @@ export default function VendorAddServicePage() {
               </label>
               <select
                 disabled={submitting}
-                name="category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-11 rounded-xl border border-[#e7e0d3] bg-white px-3.5 text-sm outline-none focus:ring-2 focus:ring-[#C39C45] dark:border-[#383124] dark:bg-[#14120e] dark:text-zinc-200"
+                className="w-full h-11 rounded-xl border border-[#e7e0d3] bg-white px-3.5 text-sm text-zinc-800 outline-none focus:ring-2 focus:ring-[#C39C45] dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-200"
               >
-                {MOCK_CATEGORIES.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
+                {MOCK_CATEGORIES.map((cat) => (
+                  <option key={cat.name} value={cat.name}>
+                    {cat.name}
                   </option>
                 ))}
               </select>
@@ -215,16 +284,17 @@ export default function VendorAddServicePage() {
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-                Starting Rate / Price *
+                Starting Price (USD) *
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 <Input
                   required
-                  disabled={submitting}
-                  name="price"
                   type="number"
                   min="0"
+                  step="0.01"
+                  disabled={submitting}
+                  name="price"
                   placeholder="3500"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
@@ -239,16 +309,21 @@ export default function VendorAddServicePage() {
               Service Location *
             </label>
             <div className="relative">
-              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-              <Input
+              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+              <select
                 required
                 name="location"
                 disabled={submitting}
-                placeholder="e.g. Manhattan, New York"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
-              />
+                className="w-full h-11 pl-10 pr-4 rounded-xl border border-[#e7e0d3] bg-white text-sm text-zinc-800 outline-none focus:ring-2 focus:ring-[#C39C45] dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-200"
+              >
+                {DHAKA_LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -308,45 +383,25 @@ export default function VendorAddServicePage() {
                 <div className="flex justify-center text-sm text-zinc-600 dark:text-zinc-400">
                   <label
                     htmlFor="service-file-upload"
-                    className={`relative rounded-md font-semibold text-[#C39C45] hover:underline ${
-                      uploading || submitting || imageFiles.length >= 5
-                        ? "cursor-not-allowed opacity-50"
-                        : "cursor-pointer"
-                    }`}
+                    className="relative cursor-pointer rounded-md font-semibold text-[#C39C45] hover:underline"
                   >
-                    <span>
-                      {imageFiles.length > 0
-                        ? "Change Selected Images"
-                        : "Upload High-Res Photos"}
-                    </span>
+                    <span>Upload portfolio photos</span>
                     <input
                       id="service-file-upload"
+                      name="images"
                       type="file"
-                      accept="image/png,image/jpeg,image/webp"
                       multiple
-                      disabled={
-                        uploading || submitting || imageFiles.length >= 5
-                      }
-                      onChange={handleFileChange}
+                      accept="image/png,image/jpeg,image/webp"
                       className="sr-only"
+                      onChange={handleFileChange}
+                      disabled={uploading || submitting}
                     />
                   </label>
+                  <p className="pl-1">or drag and drop</p>
                 </div>
-
-                <p className="text-xs text-zinc-400">
-                  PNG, JPG, or WEBP. Maximum 5 images.
+                <p className="text-xs text-zinc-500">
+                  PNG, JPG, WEBP up to 5MB each (Max 5 photos)
                 </p>
-
-                {uploading ? (
-                  <div className="flex items-center justify-center gap-2 text-xs text-[#C39C45]">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#C39C45] border-t-transparent" />
-                    Uploading {imageFiles.length} images to ImgBB...
-                  </div>
-                ) : finalImages.length > 0 ? (
-                  <p className="text-xs text-green-600">
-                    {finalImages.length} images uploaded successfully!
-                  </p>
-                ) : null}
               </div>
             </div>
           </div>
@@ -354,15 +409,15 @@ export default function VendorAddServicePage() {
           <div className="pt-2">
             <Button
               type="submit"
-              disabled={submitting || uploading || !finalImages.length}
-              className="w-full h-12 rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] font-medium shadow-md transition text-sm disabled:opacity-50"
+              disabled={submitting || uploading}
+              className="rounded-full bg-[#C39C45] px-8 text-white hover:bg-[#b08b38] h-12 font-medium shadow-md transition"
             >
               {submitting ? (
-                <ButtonLoader text="Submitting Service Package..." />
+                <ButtonLoader text="Submitting Service Offering..." />
               ) : (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center gap-2">
                   <PlusCircle className="h-4 w-4" />
-                  <span>Publish Wedding Service</span>
+                  <span>Submit Service for Admin Review</span>
                 </span>
               )}
             </Button>

@@ -78,13 +78,15 @@ export default function CustomerOverviewPage() {
       value: stats.total,
       sub: "Inquiries submitted to vendors",
       icon: CalendarCheck,
+      href: "/dashboard/customer/bookings?status=all",
       color: "bg-[#f6efe2] text-[#C39C45] dark:bg-[#29241b]"
     },
     {
-      title: "Pending Requests",
+      title: "Pending Bookings",
       value: stats.pending,
       sub: "Awaiting vendor response",
       icon: Clock,
+      href: "/dashboard/customer/bookings?status=pending",
       color: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
     },
     {
@@ -92,13 +94,15 @@ export default function CustomerOverviewPage() {
       value: stats.accepted,
       sub: "Confirmed wedding reservations",
       icon: CheckCircle2,
+      href: "/dashboard/customer/bookings?status=accepted",
       color: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
     },
     {
-      title: "Rejected Inquiries",
+      title: "Rejected Bookings",
       value: stats.rejected,
       sub: "Unavailable dates or venues",
       icon: XCircle,
+      href: "/dashboard/customer/bookings?status=rejected",
       color: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
     }
   ];
@@ -130,7 +134,7 @@ export default function CustomerOverviewPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Link key={card.title} href="/dashboard/customer/bookings" className="group">
+            <Link key={card.title} href={card.href} className="group">
               <div className="rounded-3xl border border-[#e7e0d3] bg-white p-6 shadow-xs hover:shadow-lg transition-all dark:border-[#383124] dark:bg-[#1c1914] flex flex-col justify-between h-full">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   Check,
@@ -13,7 +14,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
@@ -23,18 +26,26 @@ import { UILoader } from "@/components/ui-loader";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 
-export default function AdminServicesPage() {
+function AdminServicesContent() {
+  const searchParams = useSearchParams();
+  const statusParam = searchParams.get("status");
+  const [manualStatus, setManualStatus] = React.useState(null);
+  const statusFilter = manualStatus || statusParam || "All";
+
   const { data: session } = useSession();
   const currentUser = session?.user;
 
   const [services, setServices] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("All");
 
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [serviceToDelete, setServiceToDelete] = React.useState(null);
   const [actionLoading, setActionLoading] = React.useState(false);
+
+  const setStatusFilter = (st) => {
+    setManualStatus(st);
+  };
 
   const loadServices = React.useCallback(async () => {
     if (!currentUser) return;
@@ -65,7 +76,7 @@ export default function AdminServicesPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, search, statusFilter]);
+  }, [currentUser, search, statusFilter, setServices]);
 
   React.useEffect(() => {
     let active = true;
@@ -172,17 +183,17 @@ export default function AdminServicesPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          {["All", "Pending", "Active", "Rejected"].map((st) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {["All", "Pending", "Active", "Paused", "Rejected"].map((st) => (
             <Button
               key={st}
               variant={statusFilter.toLowerCase() === st.toLowerCase() ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter(st)}
-              className={`rounded-full text-xs font-semibold ${
+              className={`rounded-full text-xs h-9 ${
                 statusFilter.toLowerCase() === st.toLowerCase()
                   ? "bg-[#C39C45] text-white hover:bg-[#b08b38]"
-                  : "border-[#e7e0d3] text-zinc-600 dark:border-[#383124] dark:text-zinc-300"
+                  : "border-[#e7e0d3] dark:border-[#383124]"
               }`}
             >
               {st}
@@ -193,49 +204,58 @@ export default function AdminServicesPage() {
 
       {loading ? (
         <UILoader
-          message="Loading Vendor Services"
-          subtext="Fetching catalog listings, approvals, and package descriptions..."
+          message="Loading Services Catalog"
+          subtext="Fetching vendor offerings, packages, and review statuses..."
         />
       ) : services.length === 0 ? (
         <div className="my-12 rounded-3xl border border-dashed border-[#e7e0d3] bg-white p-12 text-center dark:border-[#383124] dark:bg-[#1c1914]">
-          <h3 className="text-lg font-serif font-bold text-zinc-900 dark:text-zinc-100">
-            No services found
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#f6efe2] text-[#C39C45] dark:bg-[#29241b]">
+            <Clock className="h-8 w-8" />
+          </div>
+          <h3 className="mt-4 text-xl font-serif font-bold text-zinc-900 dark:text-zinc-100">
+            No Services Found
           </h3>
-          <p className="mt-1 text-xs text-zinc-500">
-            Try revising your search term or status filter.
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto">
+            {statusFilter === "All"
+              ? "There are currently no wedding services published on the platform."
+              : `No services found matching the "${statusFilter}" filter.`}
           </p>
         </div>
       ) : (
         <div className="rounded-3xl border border-[#e7e0d3] bg-white overflow-hidden shadow-xs dark:border-[#383124] dark:bg-[#1c1914]">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#fcfaf5] text-[11px] uppercase tracking-wider text-zinc-400 border-b border-[#f0ebe1] dark:bg-[#201c16] dark:border-[#2e281d]">
+              <thead className="bg-[#fdfbf7] border-b border-[#e7e0d3] text-xs uppercase font-semibold text-zinc-600 dark:bg-[#14120e] dark:border-[#383124] dark:text-zinc-400">
                 <tr>
-                  <th className="py-4 px-6 font-semibold">Service Package</th>
-                  <th className="py-4 px-6 font-semibold">Category</th>
-                  <th className="py-4 px-6 font-semibold">Location</th>
-                  <th className="py-4 px-6 font-semibold">Starting Price</th>
-                  <th className="py-4 px-6 font-semibold">Status</th>
-                  <th className="py-4 px-6 font-semibold text-right">Moderation Actions</th>
+                  <th className="py-4 px-6">Service Offering</th>
+                  <th className="py-4 px-6">Category</th>
+                  <th className="py-4 px-6">Location</th>
+                  <th className="py-4 px-6">Price</th>
+                  <th className="py-4 px-6">Status</th>
+                  <th className="py-4 px-6 text-right">Moderation Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f0ebe1] dark:divide-[#2e281d]">
                 {services.map((s) => {
-                  const coverImage = Array.isArray(s.images) && s.images.length > 0
-                    ? s.images[0]
-                    : s.image || "/assets/Slider Image (1).jpg";
-                  const isApproved = s.status?.toLowerCase() === "active";
-                  const isPending = s.status?.toLowerCase() === "pending";
-                  const isRejected = s.status?.toLowerCase() === "rejected";
+                  const currentStatus = (s.status || "pending").toLowerCase();
+                  const isApproved = currentStatus === "active";
+                  const isPaused = currentStatus === "paused";
+                  const isRejected = currentStatus === "rejected";
+                  const isPending = currentStatus === "pending";
+
+                  const coverImage =
+                    Array.isArray(s.images) && s.images.length > 0
+                      ? s.images[0]
+                      : s.image || "/assets/Slider Image (1).jpg";
 
                   return (
                     <tr
                       key={s._id}
-                      className="hover:bg-[#faf7f0] dark:hover:bg-[#231e18] transition-colors"
+                      className="hover:bg-[#fcfaf6] transition dark:hover:bg-[#181511]"
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="relative h-12 w-14 shrink-0 rounded-xl overflow-hidden bg-zinc-100">
+                          <div className="relative h-12 w-12 rounded-xl overflow-hidden bg-zinc-100 shrink-0">
                             <Image
                               src={coverImage}
                               alt={s.name}
@@ -274,6 +294,8 @@ export default function AdminServicesPage() {
                           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                             isApproved
                               ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                              : isPaused
+                              ? "bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
                               : isRejected
                               ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400"
                               : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
@@ -295,7 +317,7 @@ export default function AdminServicesPage() {
                             </Button>
                           </Link>
 
-                          {!isApproved && (
+                          {isPending && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -304,6 +326,28 @@ export default function AdminServicesPage() {
                               className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
                             >
                               <Check className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          {(isApproved || isPaused) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                handleStatusChange(s, isPaused ? "active" : "paused")
+                              }
+                              title={isPaused ? "Activate Service" : "Pause Service"}
+                              className={`h-8 w-8 ${
+                                isPaused
+                                  ? "text-emerald-600 hover:bg-emerald-50"
+                                  : "text-zinc-500 hover:text-amber-600 hover:bg-amber-50"
+                              }`}
+                            >
+                              {isPaused ? (
+                                <Power className="h-4 w-4" />
+                              ) : (
+                                <PowerOff className="h-4 w-4" />
+                              )}
                             </Button>
                           )}
 
@@ -323,7 +367,6 @@ export default function AdminServicesPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => openDeleteDialog(s)}
-                            title="Delete Service"
                             className="h-8 w-8 text-zinc-400 hover:text-red-600 hover:bg-red-50"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -342,12 +385,29 @@ export default function AdminServicesPage() {
       <ConfirmDeleteDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title="Delete Inappropriate Service?"
-        description={`Are you sure you want to delete "${serviceToDelete?.name}"? It will be removed from all public listings.`}
+        title="Delete Service Offering?"
+        description={`Are you sure you want to permanently delete "${serviceToDelete?.name}"?`}
         confirmText="Yes, Delete Service"
         loading={actionLoading}
         onConfirm={handleConfirmDelete}
       />
     </div>
+  );
+}
+
+export default function AdminServicesPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="py-24">
+          <UILoader
+            message="Loading Moderation Queue"
+            subtext="Please wait..."
+          />
+        </div>
+      }
+    >
+      <AdminServicesContent />
+    </React.Suspense>
   );
 }

@@ -63,6 +63,7 @@ export default function DashboardLayout({ children }) {
     { name: "My Services", href: "/dashboard/vendor/services", icon: Briefcase },
     { name: "Add Service", href: "/dashboard/vendor/add-service", icon: PlusCircle },
     { name: "Booking Requests", href: "/dashboard/vendor/bookings", icon: CalendarCheck },
+    { name: "Subscription", href: "/dashboard/vendor/subscription", icon: CreditCard },
     { name: "Profile Settings", href: "/dashboard/vendor/profile", icon: UserCheck }
   ];
 

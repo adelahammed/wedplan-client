@@ -1,8 +1,99 @@
-import Link from "next/link";
-import { AlertCircle, ArrowLeft, RefreshCw, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
+"use client";
 
-export default function PaymentCancelPage() {
+import * as React from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { AlertCircle, RefreshCw, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UILoader } from "@/components/ui-loader";
+
+function CancelContent() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("session_id");
+
+  const [loading, setLoading] = React.useState(true);
+  const [valid, setValid] = React.useState(false);
+
+  React.useEffect(() => {
+    let active = true;
+
+    Promise.resolve().then(async () => {
+      if (!sessionId) {
+        if (active) {
+          setLoading(false);
+          setValid(false);
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/payments/verify-session`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ sessionId }),
+            cache: "no-store",
+          }
+        );
+        const data = await res.json();
+        if (active) {
+          setValid(Boolean(data?.success));
+        }
+      } catch {
+        if (active) {
+          setValid(false);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [sessionId]);
+
+  if (loading) {
+    return (
+      <div className="py-24">
+        <UILoader
+          text="Verifying checkout session..."
+          subtext="Please wait while we confirm your session status."
+        />
+      </div>
+    );
+  }
+
+  if (!valid) {
+    return (
+      <div className="flex min-h-[80vh] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[#fdfbf7] dark:bg-[#14120e]">
+        <div className="w-full max-w-md space-y-6 rounded-3xl border border-[#e7e0d3] bg-white p-8 sm:p-10 shadow-xl dark:border-[#383124] dark:bg-[#1c1914] text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+            <ShieldAlert className="h-8 w-8" />
+          </div>
+          <h1 className="text-2xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
+            Access Denied
+          </h1>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            This cancellation page cannot be accessed directly without an active checkout session.
+          </p>
+          <div className="pt-2">
+            <Link href="/dashboard/vendor">
+              <Button className="rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] px-6">
+                Return to Dashboard
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[80vh] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[#fdfbf7] dark:bg-[#14120e]">
       <div className="w-full max-w-md space-y-8 rounded-3xl border border-[#e7e0d3] bg-white p-8 sm:p-10 shadow-xl dark:border-[#383124] dark:bg-[#1c1914] text-center">
@@ -37,5 +128,15 @@ export default function PaymentCancelPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentCancelPage() {
+  return (
+    <React.Suspense
+      fallback={<div className="py-24 text-center">Loading Session Status...</div>}
+    >
+      <CancelContent />
+    </React.Suspense>
   );
 }
