@@ -1,7 +1,8 @@
 export async function fetchAuthToken(user) {
   if (!user || !user.email) return null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/jwt`, {
+    const serverUrl = (process.env.NEXT_PUBLIC_SERVER_URL || "").replace(/\/+$/, "");
+    const res = await fetch(`${serverUrl}/jwt`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

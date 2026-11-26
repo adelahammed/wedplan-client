@@ -73,8 +73,10 @@ export default function ServiceDetailsPage({ params }) {
           if (token) {
             headers.Authorization = `Bearer ${token}`;
           }
+          const rawUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+          const serverUrl = (rawUrl || "").replace(/\/+$/, "");
           const res = await fetch(
-            `${process.env.NEXT_PUBLIC_SERVER_URL}/services/${id}`,
+            `${serverUrl}/services/${id}`,
             {
               headers,
               cache: "no-store",
@@ -149,7 +151,9 @@ export default function ServiceDetailsPage({ params }) {
         token = await fetchAuthToken(session.user);
       }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/bookings`, {
+      const rawUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+      const serverUrl = (rawUrl || "").replace(/\/+$/, "");
+      const res = await fetch(`${serverUrl}/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

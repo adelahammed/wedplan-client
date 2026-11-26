@@ -39,21 +39,26 @@ function BrowseServicesContent() {
   ];
 
   const categoryList = ["All", ...MOCK_CATEGORIES.map((c) => c.name)];
-  console.log(`the backend is ${process.env.NEXT_PUBLIC_SERVER_URL}`);
 
   React.useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/service-list`,
-          {
-            cache: "no-store",
-          },
-        );
+        const rawUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+        if (!rawUrl) {
+          console.error("NEXT_PUBLIC_SERVER_URL environment variable is missing or undefined.");
+        }
+        const serverUrl = (rawUrl || "").replace(/\/+$/, "");
+        const res = await fetch(`${serverUrl}/service-list`, {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          console.error("Server responded with error status:", res.status, res.statusText);
+        }
         const data = await res.json();
         setServices(Array.isArray(data) ? data : []);
-      } catch {
+      } catch (err) {
+        console.error("Failed to fetch /service-list:", err);
         setServices([]);
       } finally {
         setLoading(false);

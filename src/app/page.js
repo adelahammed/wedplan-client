@@ -50,12 +50,11 @@ export default function HomePage() {
   React.useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/service-list`,
-          {
-            cache: "no-store",
-          },
-        );
+        const rawUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+        const serverUrl = (rawUrl || "").replace(/\/+$/, "");
+        const res = await fetch(`${serverUrl}/service-list`, {
+          cache: "no-store",
+        });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
