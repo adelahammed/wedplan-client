@@ -4,12 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Search,
-  MapPin,
-  X,
-  ArrowUpDown
-} from "lucide-react";
+import { Search, MapPin, X, ArrowUpDown } from "lucide-react";
 import { MOCK_CATEGORIES } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +20,8 @@ function BrowseServicesContent() {
   const [services, setServices] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedCategory, setSelectedCategory] = React.useState(initialCategory);
+  const [selectedCategory, setSelectedCategory] =
+    React.useState(initialCategory);
   const [selectedLocation, setSelectedLocation] = React.useState("All");
   const [sortBy, setSortBy] = React.useState("featured");
 
@@ -43,6 +39,7 @@ function BrowseServicesContent() {
   ];
 
   const categoryList = ["All", ...MOCK_CATEGORIES.map((c) => c.name)];
+  console.log(`the backend is ${process.env.NEXT_PUBLIC_SERVER_URL}`);
 
   React.useEffect(() => {
     async function loadData() {
@@ -73,7 +70,9 @@ function BrowseServicesContent() {
 
       const matchesLocation =
         selectedLocation === "All" ||
-        service.location?.toLowerCase().includes(selectedLocation.toLowerCase());
+        service.location
+          ?.toLowerCase()
+          .includes(selectedLocation.toLowerCase());
 
       const query = searchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -129,7 +128,8 @@ function BrowseServicesContent() {
             Browse Wedding Services
           </h1>
           <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-            Explore premier wedding venues, fine art photographers, bespoke florists, master caterers, and bridal stylists for your special day.
+            Explore premier wedding venues, fine art photographers, bespoke
+            florists, master caterers, and bridal stylists for your special day.
           </p>
         </div>
 
@@ -248,7 +248,8 @@ function BrowseServicesContent() {
               No matching wedding packages found
             </h3>
             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-              Try adjusting your search criteria, clearing category filters, or exploring other locations.
+              Try adjusting your search criteria, clearing category filters, or
+              exploring other locations.
             </p>
             <Button
               onClick={resetFilters}
@@ -261,9 +262,10 @@ function BrowseServicesContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredServices.map((service) => {
-              const coverImg = Array.isArray(service.images) && service.images.length > 0
-                ? service.images[0]
-                : service.image || "/assets/Slider Image (1).jpg";
+              const coverImg =
+                Array.isArray(service.images) && service.images.length > 0
+                  ? service.images[0]
+                  : service.image || "/assets/Slider Image (1).jpg";
 
               return (
                 <div
@@ -310,7 +312,9 @@ function BrowseServicesContent() {
                             />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-xs text-zinc-400">Vendor</span>
+                            <span className="text-xs text-zinc-400">
+                              Vendor
+                            </span>
                             <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 line-clamp-1 max-w-[130px]">
                               {service.vendorName || "Wedding Vendor"}
                             </span>
