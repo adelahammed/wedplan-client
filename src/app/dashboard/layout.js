@@ -20,7 +20,7 @@ import {
   Ban,
   LogOut
 } from "lucide-react";
-import { useSession, signOut } from "@/lib/auth-client";
+import { useSession, signOut, updateUser } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { UILoader } from "@/components/ui-loader";
 import { removeStoredToken } from "@/lib/jwt";
@@ -32,7 +32,34 @@ export default function DashboardLayout({ children }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 
   const user = session?.user;
-  const userRole = (user?.role || "customer").toLowerCase();
+  const storedRole =
+    typeof window !== "undefined"
+      ? localStorage.getItem("wedplan_oauth_role")
+      : null;
+  const userRole = (
+    storedRole === "vendor" ? "vendor" : user?.role || "customer"
+  ).toLowerCase();
+
+  React.useEffect(() => {
+    if (!user) return;
+    const stored =
+      typeof window !== "undefined"
+        ? localStorage.getItem("wedplan_oauth_role")
+        : null;
+    if (stored) {
+      localStorage.removeItem("wedplan_oauth_role");
+      document.cookie = "wedplan_oauth_role=; path=/; max-age=0;";
+      fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/users/sync-role`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, role: stored }),
+      })
+        .then(() => {
+          updateUser({ role: stored }).catch(() => {});
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   React.useEffect(() => {
     if (!isPending) {

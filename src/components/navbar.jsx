@@ -13,7 +13,7 @@ import {
   LogOut,
   ChevronDown
 } from "lucide-react";
-import { useSession, signOut } from "@/lib/auth-client";
+import { useSession, signOut, updateUser } from "@/lib/auth-client";
 import { removeStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -38,18 +38,22 @@ export function Navbar() {
 
   React.useEffect(() => {
     if (!session?.user?.email) return;
-    const storedRole =
+    const stored =
       typeof window !== "undefined"
         ? localStorage.getItem("wedplan_oauth_role")
         : null;
-    if (storedRole) {
+    if (stored) {
       localStorage.removeItem("wedplan_oauth_role");
       document.cookie = "wedplan_oauth_role=; path=/; max-age=0;";
       fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/users/sync-role`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: session.user.email, role: storedRole }),
-      }).catch(() => {});
+        body: JSON.stringify({ email: session.user.email, role: stored }),
+      })
+        .then(() => {
+          updateUser({ role: stored }).catch(() => {});
+        })
+        .catch(() => {});
     }
   }, [session?.user?.email]);
 
@@ -72,7 +76,13 @@ export function Navbar() {
   };
 
   const user = session?.user;
-  const userRole = (user?.role || "customer").toLowerCase();
+  const storedRole =
+    typeof window !== "undefined"
+      ? localStorage.getItem("wedplan_oauth_role")
+      : null;
+  const userRole = (
+    storedRole === "vendor" ? "vendor" : user?.role || "customer"
+  ).toLowerCase();
   const profileHref =
     userRole === "vendor"
       ? "/dashboard/vendor/profile"

@@ -42,6 +42,51 @@ export const auth = betterAuth({
     },
   },
 
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, ctx) => {
+          let role = user.role || "customer";
+          try {
+            let cookieStr = "";
+            if (ctx?.headers?.get) {
+              cookieStr = ctx.headers.get("cookie") || "";
+            } else if (ctx?.request?.headers?.get) {
+              cookieStr = ctx.request.headers.get("cookie") || "";
+            } else if (ctx?.context?.headers?.get) {
+              cookieStr = ctx.context.headers.get("cookie") || "";
+            }
+            const match = cookieStr.match(/wedplan_oauth_role=([^;]+)/);
+            if (match) {
+              const parsed = decodeURIComponent(match[1]).trim().toLowerCase();
+              if (parsed === "vendor" || parsed === "customer") {
+                role = parsed;
+              }
+            }
+          } catch {}
+
+          if (role === "customer") {
+            try {
+              const { cookies } = await import("next/headers");
+              const cookieStore = await cookies();
+              const c = cookieStore.get("wedplan_oauth_role")?.value?.toLowerCase();
+              if (c === "vendor" || c === "customer") {
+                role = c;
+              }
+            } catch {}
+          }
+
+          return {
+            data: {
+              ...user,
+              role,
+            },
+          };
+        },
+      },
+    },
+  },
+
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -52,9 +97,7 @@ export const auth = betterAuth({
   plugins: [jwt()],
   session: {
     cookieCache: {
-      enabled: true,
-      strategy: "jwt",
-      maxAge: 7 * 24 * 60 * 60,
+      enabled: false,
     },
   },
 

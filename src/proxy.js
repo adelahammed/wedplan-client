@@ -31,7 +31,12 @@ export async function proxy(request) {
 
   const isAuthenticated = Boolean(session?.user || sessionToken);
   const user = session?.user;
-  const role = (user?.role || "customer").toLowerCase();
+  const oauthCookieRole = request.cookies.get("wedplan_oauth_role")?.value?.toLowerCase();
+  const role = (
+    oauthCookieRole === "vendor"
+      ? "vendor"
+      : user?.role || "customer"
+  ).toLowerCase();
 
   const isAuthRoute = pathname === "/signin" || pathname === "/signup";
 
