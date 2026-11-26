@@ -263,10 +263,6 @@ export default function HomePage() {
                           <MapPin className="h-3.5 w-3.5 text-[#C39C45]" />
                           {service.location}
                         </span>
-                        <span className="flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400">
-                          <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                          5.0
-                        </span>
                       </div>
 
                       <h3 className="text-xl font-serif font-bold text-zinc-900 group-hover:text-[#C39C45] transition-colors dark:text-zinc-50 line-clamp-1">
