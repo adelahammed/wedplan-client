@@ -9,8 +9,16 @@ import { fetchAuthToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Lock, Mail, User, CheckCircle2, UploadCloud, X } from "lucide-react";
+import { Lock, Mail, User, CheckCircle2, UploadCloud, X, UserCheck, Briefcase } from "lucide-react";
 import { ButtonLoader } from "@/components/ui-loader";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -23,6 +31,10 @@ export default function SignUpPage() {
   const [finalImage, setFinalImage] = React.useState("");
   const [imagePreview, setImagePreview] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
+
+  const [googleRoleDialogOpen, setGoogleRoleDialogOpen] = React.useState(false);
+  const [googleRole, setGoogleRole] = React.useState("Customer");
+  const [googleSubmitting, setGoogleSubmitting] = React.useState(false);
 
   const fileInputRef = React.useRef(null);
 
@@ -157,9 +169,15 @@ export default function SignUpPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleOpenGoogleModal = () => {
+    setGoogleRole(role);
+    setGoogleRoleDialogOpen(true);
+  };
+
+  const proceedGoogleSignIn = async () => {
+    setGoogleSubmitting(true);
     try {
-      const selectedRole = role.toLowerCase();
+      const selectedRole = googleRole.toLowerCase();
       if (typeof window !== "undefined") {
         localStorage.setItem("wedplan_oauth_role", selectedRole);
         document.cookie = `wedplan_oauth_role=${selectedRole}; path=/; max-age=3600; SameSite=Lax`;
@@ -172,6 +190,7 @@ export default function SignUpPage() {
       });
     } catch {
       toast.error("Google authentication failed.");
+      setGoogleSubmitting(false);
     }
   };
 
@@ -218,7 +237,7 @@ export default function SignUpPage() {
                     onChange={() => setRole(item)}
                     className="sr-only"
                   />
-                  {item}
+                  <span>{item}</span>
                 </label>
               ))}
             </div>
@@ -226,7 +245,7 @@ export default function SignUpPage() {
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Full Name
+              Full Name *
             </label>
             <div className="relative">
               <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -243,7 +262,7 @@ export default function SignUpPage() {
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Email Address
+              Email Address *
             </label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -261,66 +280,7 @@ export default function SignUpPage() {
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Upload Profile Photo
-            </label>
-            <div className="mt-1 flex justify-center rounded-2xl border-2 border-dashed border-[#e7e0d3] px-6 pt-5 pb-6 dark:border-[#383124]">
-              <div className="w-full space-y-3 text-center">
-                {imagePreview ? (
-                  <div className="relative mx-auto h-28 w-28 rounded-full overflow-hidden shadow-md">
-                    <Image
-                      src={imagePreview}
-                      alt="Profile photo preview"
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                    {!uploading && !loading && (
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white hover:bg-red-600 transition"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <UploadCloud className="mx-auto h-10 w-10 text-[#C39C45]" />
-                )}
-
-                <div className="flex justify-center text-sm text-zinc-600 dark:text-zinc-400">
-                  <label
-                    htmlFor="photo-upload"
-                    className={`relative rounded-md font-semibold text-[#C39C45] hover:underline ${
-                      uploading || loading ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                    }`}
-                  >
-                    <span>{imagePreview ? "Change Photo" : "Upload File"}</span>
-                    <input
-                      ref={fileInputRef}
-                      id="photo-upload"
-                      name="photo-upload"
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      disabled={uploading || loading}
-                      onChange={handleFileChange}
-                      className="sr-only"
-                    />
-                  </label>
-                </div>
-                <p className="text-xs text-zinc-400">PNG, JPG, WEBP up to 5MB</p>
-                {uploading && (
-                  <p className="text-xs text-[#C39C45] animate-pulse">
-                    Uploading image to ImgBB...
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Create Password
+              Password *
             </label>
             <div className="relative">
               <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -328,6 +288,7 @@ export default function SignUpPage() {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -336,31 +297,99 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div className="mt-2 space-y-1 text-xs">
+            <div className="mt-3 grid grid-cols-3 gap-2">
               <div
-                className={`flex items-center gap-1.5 ${
-                  hasMinLen ? "text-emerald-600" : "text-zinc-400"
+                className={`flex items-center gap-1.5 text-[11px] ${
+                  hasMinLen
+                    ? "text-emerald-700 dark:text-emerald-400 font-medium"
+                    : "text-zinc-400"
                 }`}
               >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>At least 6 characters</span>
+                <CheckCircle2
+                  className={`h-3.5 w-3.5 ${hasMinLen ? "text-emerald-700 dark:text-emerald-400" : "text-zinc-300"}`}
+                />
+                <span>Min 6 Chars</span>
               </div>
               <div
-                className={`flex items-center gap-1.5 ${
-                  hasUpper ? "text-emerald-600" : "text-zinc-400"
+                className={`flex items-center gap-1.5 text-[11px] ${
+                  hasUpper
+                    ? "text-emerald-700 dark:text-emerald-400 font-medium"
+                    : "text-zinc-400"
                 }`}
               >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>One uppercase letter</span>
+                <CheckCircle2
+                  className={`h-3.5 w-3.5 ${hasUpper ? "text-emerald-700 dark:text-emerald-400" : "text-zinc-300"}`}
+                />
+                <span>Uppercase</span>
               </div>
               <div
-                className={`flex items-center gap-1.5 ${
-                  hasLower ? "text-emerald-600" : "text-zinc-400"
+                className={`flex items-center gap-1.5 text-[11px] ${
+                  hasLower
+                    ? "text-emerald-700 dark:text-emerald-400 font-medium"
+                    : "text-zinc-400"
                 }`}
               >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>One lowercase letter</span>
+                <CheckCircle2
+                  className={`h-3.5 w-3.5 ${hasLower ? "text-emerald-700 dark:text-emerald-400" : "text-zinc-300"}`}
+                />
+                <span>Lowercase</span>
               </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
+              Profile Photo (Optional)
+            </label>
+            <div className="flex flex-col gap-3">
+              {imagePreview ? (
+                <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#e7e0d3] dark:border-[#383124] group">
+                  <Image
+                    src={imagePreview}
+                    alt="Preview"
+                    fill
+                    className="object-cover"
+                  />
+                  {!uploading && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="rounded-full border-[#e7e0d3] dark:border-[#383124] text-xs font-medium h-9 px-4 hover:border-[#C39C45]"
+                  >
+                    {uploading ? (
+                      <ButtonLoader text="Uploading..." />
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <UploadCloud className="h-3.5 w-3.5 text-[#C39C45]" />
+                        <span>Upload Photo</span>
+                      </span>
+                    )}
+                  </Button>
+                  <span className="text-[11px] text-zinc-500">
+                    PNG, JPG, or WEBP up to 5MB
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -368,7 +397,7 @@ export default function SignUpPage() {
             <Button
               type="submit"
               disabled={loading || uploading || !isPasswordValid}
-              className="w-full h-11 rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] font-medium shadow-md transition-all text-sm"
+              className="w-full h-11 rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] font-medium shadow-md transition-all text-sm disabled:opacity-50"
             >
               {loading ? (
                 <ButtonLoader text="Creating Your Account..." />
@@ -394,7 +423,7 @@ export default function SignUpPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={handleGoogleSignIn}
+            onClick={handleOpenGoogleModal}
             className="w-full h-11 rounded-full border-[#e7e0d3] bg-white hover:bg-[#f6efe2] text-zinc-800 font-medium transition dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-200"
           >
             <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
@@ -415,7 +444,7 @@ export default function SignUpPage() {
                 fill="#EA4335"
               />
             </svg>
-            <span>Google as {role}</span>
+            <span>Google Account</span>
           </Button>
         </div>
 
@@ -429,6 +458,72 @@ export default function SignUpPage() {
           </Link>
         </p>
       </div>
+
+      <Dialog open={googleRoleDialogOpen} onOpenChange={setGoogleRoleDialogOpen}>
+        <DialogContent className="max-w-md rounded-3xl bg-white p-6 sm:p-8 shadow-2xl dark:bg-[#1c1914] dark:border-[#383124]">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
+              Choose Account Type
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-500 mt-1">
+              Select your role before proceeding to Google authentication.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => setGoogleRole("Customer")}
+              className={`flex flex-col items-center justify-center p-4 rounded-2xl border text-center transition ${
+                googleRole === "Customer"
+                  ? "border-[#C39C45] bg-[#f6efe2] text-[#C39C45] dark:border-[#C39C45] dark:bg-[#2e2617]"
+                  : "border-[#e7e0d3] bg-white text-zinc-700 hover:border-zinc-300 dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-300"
+              }`}
+            >
+              <UserCheck className="h-6 w-6 mb-2 text-[#C39C45]" />
+              <span className="font-semibold text-sm">Customer</span>
+              <span className="text-[11px] text-zinc-500 mt-1">Book wedding services & venues</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setGoogleRole("Vendor")}
+              className={`flex flex-col items-center justify-center p-4 rounded-2xl border text-center transition ${
+                googleRole === "Vendor"
+                  ? "border-[#C39C45] bg-[#f6efe2] text-[#C39C45] dark:border-[#C39C45] dark:bg-[#2e2617]"
+                  : "border-[#e7e0d3] bg-white text-zinc-700 hover:border-zinc-300 dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-300"
+              }`}
+            >
+              <Briefcase className="h-6 w-6 mb-2 text-[#C39C45]" />
+              <span className="font-semibold text-sm">Vendor</span>
+              <span className="text-[11px] text-zinc-500 mt-1">List packages & receive inquiries</span>
+            </button>
+          </div>
+
+          <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setGoogleRoleDialogOpen(false)}
+              className="rounded-full flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={googleSubmitting}
+              onClick={proceedGoogleSignIn}
+              className="rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] flex-1"
+            >
+              {googleSubmitting ? (
+                <ButtonLoader text="Redirecting..." />
+              ) : (
+                <span>Continue as {googleRole}</span>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -9,14 +9,13 @@ import { fetchAuthToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Lock, Mail, ArrowRight, UserCheck, Briefcase } from "lucide-react";
+import { Lock, Mail, ArrowRight } from "lucide-react";
 import { ButtonLoader } from "@/components/ui-loader";
 
 export default function SignInPage() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
   const [googleLoading, setGoogleLoading] = React.useState(false);
-  const [role, setRole] = React.useState("Customer");
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +40,7 @@ export default function SignInPage() {
       if (data) {
         await fetchAuthToken({ email: user.email });
         toast.success("Sign in successful!");
-        const currentRole = data.user?.role?.toLowerCase() || role.toLowerCase();
+        const currentRole = data.user?.role?.toLowerCase() || "customer";
         if (callback) {
           router.push(callback);
         } else {
@@ -58,13 +57,12 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      const selectedRole = role.toLowerCase();
       if (typeof window !== "undefined") {
-        localStorage.setItem("wedplan_oauth_role", selectedRole);
-        document.cookie = `wedplan_oauth_role=${selectedRole}; path=/; max-age=3600; SameSite=Lax`;
+        localStorage.removeItem("wedplan_oauth_role");
+        document.cookie = "wedplan_oauth_role=; path=/; max-age=0;";
       }
       const params = new URLSearchParams(window.location.search);
-      const callback = params.get("callbackUrl") || `/dashboard/${selectedRole}`;
+      const callback = params.get("callbackUrl") || "/";
       await signIn.social({
         provider: "google",
         callbackURL: callback,
@@ -95,33 +93,7 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <div className="space-y-2">
-          <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-            I am signing in as
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Customer", icon: UserCheck },
-              { label: "Vendor", icon: Briefcase }
-            ].map(({ label, icon: Icon }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setRole(label)}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-semibold transition ${
-                  role === label
-                    ? "border-[#C39C45] bg-[#f6efe2] text-[#C39C45] dark:border-[#C39C45] dark:bg-[#2e2617]"
-                    : "border-[#e7e0d3] bg-white text-zinc-600 hover:border-zinc-300 dark:border-[#383124] dark:bg-[#1c1914] dark:text-zinc-400"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+        <form className="mt-8 space-y-4" onSubmit={onSubmit}>
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
               Email Address
@@ -219,7 +191,7 @@ export default function SignInPage() {
                     fill="#EA4335"
                   />
                 </svg>
-                <span>Google as {role}</span>
+                <span>Google Account</span>
               </>
             )}
           </Button>
