@@ -18,7 +18,7 @@ import {
   ChevronRight,
   CheckCircle2,
   Calendar,
-  Layers
+  Layers,
 } from "lucide-react";
 import { fetchServices, MOCK_CATEGORIES, MOCK_TIPS } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ const sliderImages = [
   "/assets/Slider Image (1).jpg",
   "/assets/Slider Image (2).jpg",
   "/assets/Slider Image (3).jpg",
-  "/assets/Slider Image (4).jpg"
+  "/assets/Slider Image (4).jpg",
 ];
 
 export default function HomePage() {
@@ -50,9 +50,12 @@ export default function HomePage() {
   React.useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/service-list`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/service-list`,
+          {
+            cache: "no-store",
+          },
+        );
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -80,7 +83,9 @@ export default function HomePage() {
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + sliderImages.length) % sliderImages.length);
+    setCurrentSlide(
+      (prev) => (prev - 1 + sliderImages.length) % sliderImages.length,
+    );
   };
 
   const handleServiceClick = (serviceId) => {
@@ -134,7 +139,9 @@ export default function HomePage() {
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold tracking-tight leading-[1.15]"
           >
             Your Dream Wedding, <br />
-            <span className="text-[#C39C45] italic font-normal">Flawlessly Orchestrated</span>
+            <span className="text-[#C39C45] italic font-normal">
+              Flawlessly Orchestrated
+            </span>
           </motion.h1>
 
           <motion.p
@@ -143,7 +150,9 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="mt-6 max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-zinc-200 font-light leading-relaxed"
           >
-            Discover prestigious venues, elite photographers, bespoke florists, and master caterers. Every detail meticulously vetted for your most memorable celebration.
+            Discover prestigious venues, elite photographers, bespoke florists,
+            and master caterers. Every detail meticulously vetted for your most
+            memorable celebration.
           </motion.p>
 
           <motion.div
@@ -156,14 +165,6 @@ export default function HomePage() {
               <Button className="h-13 rounded-full bg-[#C39C45] px-8 text-base font-medium text-white shadow-lg hover:bg-[#b08b38] transition-all hover:scale-105">
                 Explore Wedding Services
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button
-                variant="outline"
-                className="h-13 rounded-full border-white/30 bg-white/10 px-8 text-base font-medium text-white backdrop-blur-sm hover:bg-white/20 hover:text-white"
-              >
-                Join as Vendor or Couple
               </Button>
             </Link>
           </motion.div>
@@ -198,10 +199,14 @@ export default function HomePage() {
                 Featured Wedding Services
               </h2>
               <p className="mt-3 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl">
-                Browse handpicked selections from our verified artisans, venues, and luxury service partners.
+                Browse handpicked selections from our verified artisans, venues,
+                and luxury service partners.
               </p>
             </div>
-            <Link href="/services" className="hidden md:inline-flex items-center text-sm font-semibold text-[#C39C45] hover:underline">
+            <Link
+              href="/services"
+              className="hidden md:inline-flex items-center text-sm font-semibold text-[#C39C45] hover:underline"
+            >
               <span>View Full Directory</span>
               <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
@@ -215,11 +220,18 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredServices.map((service, index) => {
-                const coverImg = Array.isArray(service.images) && service.images.length > 0
-                  ? service.images[0]
-                  : service.image || "/assets/Slider Image (1).jpg";
-                const vendorName = service.vendorName || service.vendor?.name || "Wedding Artisan";
-                const vendorImg = service.vendorImage || service.vendor?.avatar || "/assets/Favicon.png";
+                const coverImg =
+                  Array.isArray(service.images) && service.images.length > 0
+                    ? service.images[0]
+                    : service.image || "/assets/Slider Image (1).jpg";
+                const vendorName =
+                  service.vendorName ||
+                  service.vendor?.name ||
+                  "Wedding Artisan";
+                const vendorImg =
+                  service.vendorImage ||
+                  service.vendor?.avatar ||
+                  "/assets/Favicon.png";
                 const serviceId = service._id || service.id;
 
                 return (
@@ -276,14 +288,18 @@ export default function HomePage() {
                             />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-xs text-zinc-400">Vendor</span>
+                            <span className="text-xs text-zinc-400">
+                              Vendor
+                            </span>
                             <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 line-clamp-1 max-w-[130px]">
                               {vendorName}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-xs text-zinc-400 block">Starting at</span>
+                          <span className="text-xs text-zinc-400 block">
+                            Starting at
+                          </span>
                           <span className="text-lg font-serif font-bold text-[#C39C45]">
                             ${service.price}
                           </span>
@@ -327,7 +343,8 @@ export default function HomePage() {
               Browse by Wedding Category
             </h2>
             <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-              Select your essential requirements to explore verified professionals specializing in every touchpoint of your wedding.
+              Select your essential requirements to explore verified
+              professionals specializing in every touchpoint of your wedding.
             </p>
           </div>
 
@@ -354,9 +371,6 @@ export default function HomePage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
                   </div>
                   <div className="relative z-10 text-white">
-                    <span className="text-xs uppercase tracking-wider text-[#C39C45] font-semibold">
-                      {cat.count} Available Specialists
-                    </span>
                     <h3 className="mt-1 text-2xl font-serif font-bold group-hover:text-amber-200 transition">
                       {cat.name}
                     </h3>
@@ -395,8 +409,12 @@ export default function HomePage() {
                   <Award className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xl font-serif font-bold text-zinc-900 dark:text-zinc-50">100%</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Verified Vendors</p>
+                  <p className="text-xl font-serif font-bold text-zinc-900 dark:text-zinc-50">
+                    100%
+                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Verified Vendors
+                  </p>
                 </div>
               </div>
             </motion.div>
@@ -416,7 +434,10 @@ export default function HomePage() {
                   Why Choose WedPlan?
                 </h2>
                 <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  Planning a wedding should be as joyous and romantic as the vows you exchange. WedPlan takes the guesswork out of vendor hiring with transparent portfolios, insured guarantees, and direct communication.
+                  Planning a wedding should be as joyous and romantic as the
+                  vows you exchange. WedPlan takes the guesswork out of vendor
+                  hiring with transparent portfolios, insured guarantees, and
+                  direct communication.
                 </p>
               </div>
 
@@ -430,7 +451,9 @@ export default function HomePage() {
                       Rigorously Screened & Verified Vendors
                     </h4>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                      We audit each vendor&apos;s portfolio, customer reviews, liability insurance, and professionalism before granting platform listing privileges.
+                      We audit each vendor&apos;s portfolio, customer reviews,
+                      liability insurance, and professionalism before granting
+                      platform listing privileges.
                     </p>
                   </div>
                 </div>
@@ -444,7 +467,9 @@ export default function HomePage() {
                       Seamless Booking & Direct Requests
                     </h4>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                      Request custom quotes, select dates, and receive prompt responses straight from business owners without hidden intermediary markups.
+                      Request custom quotes, select dates, and receive prompt
+                      responses straight from business owners without hidden
+                      intermediary markups.
                     </p>
                   </div>
                 </div>
@@ -458,18 +483,12 @@ export default function HomePage() {
                       Comprehensive Couple & Vendor Dashboards
                     </h4>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                      Track booking statuses, service agreements, payment schedules, and profile updates within a modern, unified control center.
+                      Track booking statuses, service agreements, payment
+                      schedules, and profile updates within a modern, unified
+                      control center.
                     </p>
                   </div>
                 </div>
-              </div>
-
-              <div className="pt-2">
-                <Link href="/services">
-                  <Button className="rounded-full bg-[#C39C45] px-8 text-white hover:bg-[#b08b38] h-12">
-                    Begin Your Wedding Journey
-                  </Button>
-                </Link>
               </div>
             </motion.div>
           </div>
@@ -486,7 +505,8 @@ export default function HomePage() {
               Wedding Planning Tips & Guides
             </h2>
             <p className="mt-4 text-base sm:text-lg text-zinc-600 dark:text-zinc-400">
-              Industry insights, budget checklists, and timeline strategies crafted by experienced bridal directors.
+              Industry insights, budget checklists, and timeline strategies
+              crafted by experienced bridal directors.
             </p>
           </div>
 
@@ -505,7 +525,6 @@ export default function HomePage() {
                     <span className="rounded-full bg-[#f6efe2] text-[#C39C45] px-2.5 py-0.5 font-semibold dark:bg-[#29241b]">
                       {tip.tag}
                     </span>
-                    <span>{tip.readTime}</span>
                   </div>
                   <h3 className="text-lg font-serif font-bold text-zinc-900 dark:text-zinc-100 line-clamp-2">
                     {tip.title}
@@ -513,15 +532,6 @@ export default function HomePage() {
                   <p className="mt-2.5 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-3">
                     {tip.summary}
                   </p>
-                </div>
-                <div className="mt-6 pt-4 border-t border-[#f0ebe1] dark:border-[#2e281d]">
-                  <Link
-                    href="/services"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C39C45] hover:underline"
-                  >
-                    <span>Read Full Guide</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
                 </div>
               </motion.div>
             ))}

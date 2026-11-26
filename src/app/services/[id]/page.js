@@ -26,6 +26,18 @@ import { UILoader, ButtonLoader } from "@/components/ui-loader";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 
+const DHAKA_LOCATIONS = [
+  "Gulshan, Dhaka",
+  "Mirpur, Dhaka",
+  "Bashundhara, Dhaka",
+  "Uttara, Dhaka",
+  "Banani, Dhaka",
+  "Dhanmondi, Dhaka",
+  "Mohammadpur, Dhaka",
+  "New Market, Dhaka",
+  "Dhaka, Bangladesh",
+];
+
 export default function ServiceDetailsPage({ params }) {
   const unwrappedParams = React.use(params);
   const id = unwrappedParams.id;
@@ -378,16 +390,23 @@ export default function ServiceDetailsPage({ params }) {
 
                   <div>
                     <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-                      Event Location / Venue City *
+                      Event Location *
                     </label>
-                    <Input
-                      type="text"
+                    <select
                       required
-                      placeholder="e.g. Manhattan Grand Ballroom, NY"
                       value={eventLocation}
                       onChange={(e) => setEventLocation(e.target.value)}
-                      className="rounded-xl border-[#e7e0d3] focus-visible:ring-[#C39C45] dark:border-[#383124] h-11"
-                    />
+                      className="w-full rounded-xl border border-[#e7e0d3] bg-white px-3 h-11 text-sm focus-visible:ring-1 focus-visible:ring-[#C39C45] dark:border-[#383124] dark:bg-[#1c1914] text-zinc-800 dark:text-zinc-200"
+                    >
+                      <option value="" disabled>
+                        Select event location
+                      </option>
+                      {DHAKA_LOCATIONS.map((loc) => (
+                        <option key={loc} value={loc}>
+                          {loc}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>

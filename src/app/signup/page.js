@@ -159,8 +159,13 @@ export default function SignUpPage() {
 
   const handleGoogleSignIn = async () => {
     try {
+      const selectedRole = role.toLowerCase();
+      if (typeof window !== "undefined") {
+        localStorage.setItem("wedplan_oauth_role", selectedRole);
+        document.cookie = `wedplan_oauth_role=${selectedRole}; path=/; max-age=3600; SameSite=Lax`;
+      }
       const params = new URLSearchParams(window.location.search);
-      const callback = params.get("callbackUrl") || "/";
+      const callback = params.get("callbackUrl") || `/dashboard/${selectedRole}`;
       await signIn.social({
         provider: "google",
         callbackURL: callback,
@@ -410,7 +415,7 @@ export default function SignUpPage() {
                 fill="#EA4335"
               />
             </svg>
-            <span>Google Account</span>
+            <span>Google as {role}</span>
           </Button>
         </div>
 

@@ -31,13 +31,15 @@ function BrowseServicesContent() {
 
   const locations = [
     "All",
-    "Manhattan, New York",
-    "Brooklyn, New York",
-    "Greenwich, Connecticut",
-    "Hudson Valley, New York",
-    "Jersey City, New Jersey",
-    "SoHo, New York",
-    "Queens, New York",
+    "Gulshan, Dhaka",
+    "Mirpur, Dhaka",
+    "Bashundhara, Dhaka",
+    "Uttara, Dhaka",
+    "Banani, Dhaka",
+    "Dhanmondi, Dhaka",
+    "Mohammadpur, Dhaka",
+    "New Market, Dhaka",
+    "Dhaka, Bangladesh",
   ];
 
   const categoryList = ["All", ...MOCK_CATEGORIES.map((c) => c.name)];

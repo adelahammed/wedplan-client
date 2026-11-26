@@ -11,7 +11,7 @@ import {
   CalendarHeart,
   ArrowRight,
   ExternalLink,
-  Ban
+  Ban,
 } from "lucide-react";
 import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export default function CustomerBookingsPage() {
             Authorization: `Bearer ${token}`,
           },
           cache: "no-store",
-        }
+        },
       );
       if (res.ok) {
         const data = await res.json();
@@ -90,7 +90,7 @@ export default function CustomerBookingsPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       const data = await res.json();
       if (res.ok) {
@@ -119,7 +119,8 @@ export default function CustomerBookingsPage() {
             My Wedding Bookings
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Review status updates and event schedules for your booked wedding vendors.
+            Review status updates and event schedules for your booked wedding
+            vendors.
           </p>
         </div>
         <Link href="/services">
@@ -143,7 +144,8 @@ export default function CustomerBookingsPage() {
             No Bookings Added
           </h3>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto">
-            You have not submitted any wedding vendor inquiries yet. Browse our verified venues and artisans to get started.
+            You have not submitted any wedding vendor inquiries yet. Browse our
+            verified venues and artisans to get started.
           </p>
           <div className="mt-6">
             <Link href="/services">
@@ -186,8 +188,8 @@ export default function CustomerBookingsPage() {
                           isAccepted
                             ? "bg-emerald-600 text-white"
                             : isCancelled || isRejected
-                            ? "bg-red-600 text-white"
-                            : "bg-amber-500 text-white"
+                              ? "bg-red-600 text-white"
+                              : "bg-amber-500 text-white"
                         }`}
                       >
                         {b.status ? b.status.toUpperCase() : "PENDING"}
@@ -203,7 +205,12 @@ export default function CustomerBookingsPage() {
                     <div className="space-y-1.5 text-xs text-zinc-600 dark:text-zinc-400">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5 text-[#C39C45]" />
-                        <span>Event Date: <strong className="text-zinc-800 dark:text-zinc-200">{b.eventDate}</strong></span>
+                        <span>
+                          Event Date:{" "}
+                          <strong className="text-zinc-800 dark:text-zinc-200">
+                            {b.eventDate}
+                          </strong>
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-[#C39C45]" />
@@ -211,21 +218,36 @@ export default function CustomerBookingsPage() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-[#C39C45]" />
-                        <span>Requested: {b.createdAt ? new Date(b.createdAt).toLocaleDateString() : "Recent"}</span>
+                        <span>
+                          Requested:{" "}
+                          {b.createdAt
+                            ? new Date(b.createdAt).toLocaleDateString()
+                            : "Recent"}
+                        </span>
                       </div>
                     </div>
 
                     <div className="rounded-xl bg-[#fdfbf7] dark:bg-[#14120e] p-3 border border-[#f0ebe1] dark:border-[#2e281d] text-xs">
-                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Vendor Information</span>
-                      <p className="font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">{b.vendorName || "Wedding Vendor"}</p>
-                      <p className="text-zinc-500 text-[11px]">{b.vendorEmail || ""}</p>
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">
+                        Vendor Information
+                      </span>
+                      <p className="font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
+                        {b.vendorName || "Wedding Vendor"}
+                      </p>
+                      <p className="text-zinc-500 text-[11px]">
+                        {b.vendorEmail || ""}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-5 pt-0 border-t border-[#f0ebe1] dark:border-[#2e281d] mt-2 flex items-center justify-between gap-2">
+                <div className="p-5 pt-0  border-[#f0ebe1] dark:border-[#2e281d] mt-2 flex items-center justify-between gap-2">
                   <Link href={`/services/${b.serviceId}`} target="_blank">
-                    <Button variant="outline" size="sm" className="rounded-xl text-xs flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs flex items-center gap-1"
+                    >
                       <ExternalLink className="h-3.5 w-3.5" />
                       <span>View Service</span>
                     </Button>

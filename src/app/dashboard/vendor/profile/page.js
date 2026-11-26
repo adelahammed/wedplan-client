@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { User, Phone, MapPin, Camera, Save, Briefcase } from "lucide-react";
+import { User, MapPin, Camera, Save, Briefcase, Upload, X } from "lucide-react";
 import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,15 +15,16 @@ export default function VendorProfileSettingsPage() {
   const { data: session } = useSession();
   const user = session?.user;
   const [submitting, setSubmitting] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
+  const fileInputRef = React.useRef(null);
 
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
-    phone: "",
     city: "",
     image: "",
     bio: "",
-    businessName: ""
+    businessName: "",
   });
 
   React.useEffect(() => {
@@ -33,11 +34,10 @@ export default function VendorProfileSettingsPage() {
         setFormData({
           name: user.name || "",
           email: user.email || "",
-          phone: user.phone || "",
           city: user.location || "",
           image: user.image || "",
           bio: user.bio || "",
-          businessName: user.businessName || user.name || ""
+          businessName: user.businessName || user.name || "",
         });
       }
     });
@@ -45,6 +45,62 @@ export default function VendorProfileSettingsPage() {
       active = false;
     };
   }, [user]);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PNG, JPG, and WEBP images are allowed.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_IMAGEBB_API;
+      if (!apiKey) {
+        throw new Error("ImgBB API key is missing.");
+      }
+
+      const bodyFormData = new FormData();
+      bodyFormData.append("image", file);
+
+      const response = await fetch(
+        `https://api.imgbb.com/1/upload?key=${apiKey}`,
+        {
+          method: "POST",
+          body: bodyFormData,
+        },
+      );
+
+      const result = await response.json();
+      if (!response.ok || !result.success || !result.data?.url) {
+        throw new Error(result.error?.message || "Image upload failed.");
+      }
+
+      setFormData((prev) => ({ ...prev, image: result.data.url }));
+      toast.success("Studio logo uploaded successfully!");
+    } catch (error) {
+      toast.error(error.message || "Image upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData((prev) => ({ ...prev, image: "" }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,23 +112,27 @@ export default function VendorProfileSettingsPage() {
         token = await fetchAuthToken(user);
       }
       const userId = user.id || user._id;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/users/profile/${userId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL}/users/profile/${userId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            image: formData.image,
+            businessName: formData.businessName,
+            location: formData.city,
+            bio: formData.bio,
+          }),
         },
-        body: JSON.stringify({
-          name: formData.name,
-          image: formData.image,
-          phone: formData.phone,
-          businessName: formData.businessName,
-          location: formData.city,
-          bio: formData.bio
-        })
-      });
+      );
       if (res.ok) {
-        toast.success("Vendor profile and contact details updated successfully!");
+        toast.success(
+          "Vendor profile and business details updated successfully!",
+        );
       } else {
         toast.error("Failed to update profile settings");
       }
@@ -93,14 +153,14 @@ export default function VendorProfileSettingsPage() {
           Vendor Profile Settings
         </h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Edit your public business identity, contact channels, studio location, and client bio.
+          Edit your public business identity, studio location, and client bio.
         </p>
       </div>
 
       <div className="rounded-3xl border border-[#e7e0d3] bg-white p-6 sm:p-8 shadow-xs dark:border-[#383124] dark:bg-[#1c1914]">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-[#f0ebe1] dark:border-[#2e281d]">
-            <div className="relative h-24 w-24 rounded-full overflow-hidden bg-[#f6efe2] text-[#C39C45] flex items-center justify-center font-bold text-2xl border-2 border-[#C39C45]">
+            <div className="relative h-24 w-24 rounded-full overflow-hidden bg-[#f6efe2] text-[#C39C45] flex items-center justify-center font-bold text-2xl border-2 border-[#C39C45] shrink-0">
               {formData.image ? (
                 <Image
                   src={formData.image}
@@ -114,18 +174,41 @@ export default function VendorProfileSettingsPage() {
             </div>
             <div className="flex-1 w-full space-y-2">
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
-                Studio Logo / Profile Photo URL
+                Studio Logo / Profile Photo
               </label>
-              <div className="relative">
-                <Camera className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                <Input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-10"
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleImageUpload}
+                  className="hidden"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="rounded-xl border-[#e7e0d3] h-10 text-xs font-medium"
+                >
+                  <Upload className="h-4 w-4 mr-2 text-[#C39C45]" />
+                  {uploading ? "Uploading Image..." : "Upload New Photo"}
+                </Button>
+                {formData.image && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleRemoveImage}
+                    className="h-10 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Remove
+                  </Button>
+                )}
               </div>
+              <p className="text-[11px] text-zinc-400">
+                Supports JPG, PNG or WEBP up to 5MB (via ImgBB).
+              </p>
             </div>
           </div>
 
@@ -140,7 +223,9 @@ export default function VendorProfileSettingsPage() {
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
                 />
               </div>
@@ -156,40 +241,9 @@ export default function VendorProfileSettingsPage() {
                   type="text"
                   required
                   value={formData.businessName}
-                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                  className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-                Direct Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                <Input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-                Operating City / Location
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                <Input
-                  type="text"
-                  placeholder="e.g. Manhattan, New York"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, businessName: e.target.value })
+                  }
                   className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
                 />
               </div>
@@ -198,13 +252,33 @@ export default function VendorProfileSettingsPage() {
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-              Public Business Bio & Studio Story
+              Operating City / Location
+            </label>
+            <div className="relative">
+              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              <Input
+                type="text"
+                placeholder="e.g. Gulshan, Dhaka"
+                value={formData.city}
+                onChange={(e) =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
+                className="pl-10 rounded-xl border-[#e7e0d3] dark:border-[#383124] h-11"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
+              Business Bio & Editorial Introduction
             </label>
             <Textarea
               rows={4}
-              placeholder="Introduce your business background, accolades, awards, capacity, and creative philosophy..."
+              placeholder="Tell couples about your signature style, accolades, years of experience, and awards..."
               value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, bio: e.target.value })
+              }
               className="rounded-xl border-[#e7e0d3] dark:border-[#383124]"
             />
           </div>
@@ -212,15 +286,15 @@ export default function VendorProfileSettingsPage() {
           <div className="pt-2">
             <Button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || uploading}
               className="rounded-full bg-[#C39C45] px-8 text-white hover:bg-[#b08b38] h-11 font-medium shadow-sm transition"
             >
               {submitting ? (
-                <ButtonLoader text="Saving Vendor Details..." />
+                <ButtonLoader text="Saving Changes..." />
               ) : (
                 <span className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
-                  <span>Update Vendor Profile</span>
+                  <span>Save Vendor Settings</span>
                 </span>
               )}
             </Button>

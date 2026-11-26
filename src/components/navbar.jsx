@@ -36,6 +36,23 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  React.useEffect(() => {
+    if (!session?.user?.email) return;
+    const storedRole =
+      typeof window !== "undefined"
+        ? localStorage.getItem("wedplan_oauth_role")
+        : null;
+    if (storedRole) {
+      localStorage.removeItem("wedplan_oauth_role");
+      document.cookie = "wedplan_oauth_role=; path=/; max-age=0;";
+      fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/users/sync-role`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: session.user.email, role: storedRole }),
+      }).catch(() => {});
+    }
+  }, [session?.user?.email]);
+
   const [prevPathname, setPrevPathname] = React.useState(pathname);
   if (prevPathname !== pathname) {
     setPrevPathname(pathname);
@@ -67,10 +84,6 @@ export function Navbar() {
     { name: "Home", href: "/" },
     { name: "Browse Services", href: "/services" }
   ];
-
-  if (user) {
-    navLinks.push({ name: "Dashboard", href: `/dashboard/${userRole}` });
-  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#e7e0d3] bg-[#fdfbf7]/90 backdrop-blur-md dark:border-[#383124] dark:bg-[#14120e]/90 transition-colors">
@@ -169,14 +182,16 @@ export function Navbar() {
                       <LayoutDashboard className="h-4 w-4 text-[#C39C45]" />
                       <span>Dashboard</span>
                     </Link>
-                    <Link
-                      href={profileHref}
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-zinc-700 hover:bg-[#f8f3ea] hover:text-[#C39C45] dark:text-zinc-300 dark:hover:bg-[#29241b]"
-                    >
-                      <Settings className="h-4 w-4 text-[#C39C45]" />
-                      <span>Profile Settings</span>
-                    </Link>
+                    {userRole !== "admin" && (
+                      <Link
+                        href={profileHref}
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-zinc-700 hover:bg-[#f8f3ea] hover:text-[#C39C45] dark:text-zinc-300 dark:hover:bg-[#29241b]"
+                      >
+                        <Settings className="h-4 w-4 text-[#C39C45]" />
+                        <span>Profile Settings</span>
+                      </Link>
+                    )}
                   </div>
 
                   <div className="border-t border-[#f0ebe1] pt-1 dark:border-[#2e281d]">
@@ -281,13 +296,15 @@ export function Navbar() {
                     <LayoutDashboard className="h-4 w-4 text-[#C39C45]" />
                     <span>Dashboard</span>
                   </Link>
-                  <Link
-                    href={profileHref}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-700 hover:bg-[#f6efe2] dark:text-zinc-300 dark:hover:bg-[#29241b]"
-                  >
-                    <Settings className="h-4 w-4 text-[#C39C45]" />
-                    <span>Profile Settings</span>
-                  </Link>
+                  {userRole !== "admin" && (
+                    <Link
+                      href={profileHref}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-700 hover:bg-[#f6efe2] dark:text-zinc-300 dark:hover:bg-[#29241b]"
+                    >
+                      <Settings className="h-4 w-4 text-[#C39C45]" />
+                      <span>Profile Settings</span>
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={handleSignOut}
