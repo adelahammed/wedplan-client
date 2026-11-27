@@ -20,8 +20,10 @@ export default function SignInPage() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const formData = new FormData(e.target);
+    const form = e.target;
+    const formData = new FormData(form);
     const user = Object.fromEntries(formData.entries());
+    form.reset();
 
     const params = new URLSearchParams(window.location.search);
     const callback = params.get("callbackUrl");

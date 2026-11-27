@@ -7,6 +7,8 @@ import { CreditCard, ShieldCheck, ArrowLeft, Lock, Sparkles, AlertCircle } from 
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 import { UILoader } from "@/components/ui-loader";
+import { toast } from "sonner";
+import { fetchAuthToken, getStoredToken } from "@/lib/jwt";
 
 function PaymentContent() {
   const router = useRouter();
@@ -21,6 +23,7 @@ function PaymentContent() {
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
+    let active = true;
     if (!isPending) {
       if (!user) {
         router.push("/signin?callbackUrl=/payment");
@@ -29,8 +32,46 @@ function PaymentContent() {
       const role = (user.role || "").toLowerCase();
       if (role !== "vendor") {
         router.push(`/dashboard/${role || "customer"}`);
+        return;
       }
+
+      if (user.premium || user.subscriptionPlan === "Premium") {
+        toast.info("You already have an active Premium subscription.");
+        router.push("/dashboard/vendor/subscription");
+        return;
+      }
+
+      Promise.resolve().then(async () => {
+        try {
+          let token = getStoredToken();
+          if (!token) {
+            token = await fetchAuthToken(user);
+          }
+          const rawUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+          const serverUrl = (rawUrl || "").replace(/\/+$/, "");
+          const res = await fetch(
+            `${serverUrl}/users/profile/${user.id || user._id || user.email}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              cache: "no-store",
+            }
+          );
+          if (res.ok) {
+            const profile = await res.json();
+            if (active && (profile?.premium || profile?.subscriptionPlan === "Premium")) {
+              toast.info("You already have an active Premium subscription.");
+              router.push("/dashboard/vendor/subscription");
+            }
+          }
+        } catch {}
+      });
     }
+
+    return () => {
+      active = false;
+    };
   }, [user, isPending, router]);
 
   const handleCheckout = async () => {

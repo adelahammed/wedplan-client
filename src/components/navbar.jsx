@@ -67,9 +67,12 @@ export function Navbar() {
   const handleSignOut = async () => {
     try {
       removeStoredToken();
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("wedplan_oauth_role");
+      }
       await signOut();
       toast.success("Successfully signed out");
-      router.push("/");
+      window.location.href = "/";
     } catch {
       toast.error("Error signing out");
     }

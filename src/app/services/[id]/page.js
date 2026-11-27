@@ -84,6 +84,22 @@ export default function ServiceDetailsPage({ params }) {
           );
           if (res.ok) {
             const data = await res.json();
+            const serviceStatus = (data?.status || "").toLowerCase();
+            const currentUserId = session?.user?.id || session?.user?._id;
+            const isOwner =
+              currentUserId === data?.vendorId ||
+              session?.user?.email === data?.vendorEmail;
+            const isAdmin = (session?.user?.role || "").toLowerCase() === "admin";
+
+            if (serviceStatus !== "active" && !isOwner && !isAdmin) {
+              if (active) {
+                setService(null);
+                toast.error("This service is currently pending approval and not publicly accessible.");
+                router.push("/services");
+              }
+              return;
+            }
+
             if (active) {
               setService(data);
               if (Array.isArray(data?.images) && data.images.length > 0) {
@@ -93,8 +109,11 @@ export default function ServiceDetailsPage({ params }) {
               }
             }
           } else {
-            if (res.status === 401 || res.status === 403) {
+            if (res.status === 401) {
               router.push(`/signin?callbackUrl=/services/${id}`);
+            } else if (res.status === 403) {
+              toast.error("This service is currently pending approval and not publicly accessible.");
+              router.push("/services");
             }
             if (active) setService(null);
           }
@@ -179,6 +198,7 @@ export default function ServiceDetailsPage({ params }) {
         setMessage("");
         setEventDate("");
         setEventLocation("");
+        setGuestCount("");
       } else {
         toast.error(data.message || "Failed to submit booking request.");
       }

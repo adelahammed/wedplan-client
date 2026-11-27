@@ -169,6 +169,14 @@ export default function VendorAddServicePage() {
     }
 
     setSubmitting(true);
+    setName("");
+    setDescription("");
+    setPrice("");
+    setCategory(MOCK_CATEGORIES[0].name);
+    setLocation(DHAKA_LOCATIONS[0]);
+    setFinalImages([]);
+    setImageFiles([]);
+    setImagePreviews([]);
 
     try {
       let token = getStoredToken();

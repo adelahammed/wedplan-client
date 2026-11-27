@@ -21,6 +21,13 @@ export async function POST(req) {
     );
   }
 
+  if (userSession.user.premium || userSession.user.subscriptionPlan === "Premium") {
+    return NextResponse.json(
+      { error: "You already have an active Premium subscription." },
+      { status: 400 }
+    );
+  }
+
   try {
     const headersList = await headers();
     const origin = headersList.get("origin");

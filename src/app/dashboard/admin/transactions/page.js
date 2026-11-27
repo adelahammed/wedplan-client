@@ -24,12 +24,15 @@ export default function AdminTransactionsPage() {
         if (!token) {
           token = await fetchAuthToken(currentUser);
         }
-        const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/transactions`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_SERVER_URL}/transactions`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
           },
-          cache: "no-store"
-        });
+        );
         if (res.ok) {
           const data = await res.json();
           setTransactions(Array.isArray(data) ? data : []);
@@ -118,7 +121,9 @@ export default function AdminTransactionsPage() {
                       <p className="font-semibold text-zinc-900 dark:text-zinc-100">
                         {tx.vendorName || "Wedding Vendor"}
                       </p>
-                      <p className="text-xs text-zinc-500">{tx.vendorEmail || ""}</p>
+                      <p className="text-xs text-zinc-500">
+                        {tx.vendorEmail || ""}
+                      </p>
                     </td>
 
                     <td className="py-4 px-6 font-medium text-zinc-800 dark:text-zinc-200">
@@ -137,7 +142,9 @@ export default function AdminTransactionsPage() {
                     </td>
 
                     <td className="py-4 px-6 text-xs text-zinc-500">
-                      {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : "Recent"}
+                      {tx.createdAt
+                        ? new Date(tx.createdAt).toLocaleDateString()
+                        : "Recent"}
                     </td>
                   </tr>
                 ))}

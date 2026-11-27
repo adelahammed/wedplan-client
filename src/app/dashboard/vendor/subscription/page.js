@@ -27,8 +27,10 @@ export default function VendorSubscriptionPage() {
         if (!token) {
           token = await fetchAuthToken(user);
         }
+        const rawUrl = process.env.NEXT_PUBLIC_SERVER_URL;
+        const serverUrl = (rawUrl || "").replace(/\/+$/, "");
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SERVER_URL}/users/profile/${user.id || user._id}`,
+          `${serverUrl}/users/profile/${user.id || user._id || user.email}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -39,7 +41,7 @@ export default function VendorSubscriptionPage() {
         if (res.ok) {
           const profile = await res.json();
           if (active) {
-            setIsPremium(Boolean(profile?.premium || user?.premium || profile?.subscriptionPlan === "Premium"));
+            setIsPremium(Boolean(profile?.premium || profile?.subscriptionPlan === "Premium" || user?.premium || user?.subscriptionPlan === "Premium"));
           }
         } else if (active) {
           setIsPremium(Boolean(user?.premium || user?.subscriptionPlan === "Premium"));

@@ -88,11 +88,14 @@ function SuccessContent() {
             {error || "Payment is not completed."}
           </p>
           <div className="pt-2">
-            <Link href="/dashboard/vendor/subscription">
-              <Button className="rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] px-6">
-                Return to Subscription
-              </Button>
-            </Link>
+            <Button
+              onClick={() => {
+                window.location.href = "/dashboard/vendor/subscription";
+              }}
+              className="rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] px-6"
+            >
+              Return to Subscription
+            </Button>
           </div>
         </div>
       </div>
@@ -175,21 +178,25 @@ function SuccessContent() {
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row gap-3">
-          <Link href="/dashboard/vendor" className="flex-1">
-            <Button className="w-full h-11 rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] font-medium flex items-center justify-center gap-2">
-              <span>Go to Vendor Dashboard</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button
+            onClick={() => {
+              window.location.href = "/dashboard/vendor";
+            }}
+            className="flex-1 h-11 rounded-full bg-[#C39C45] text-white hover:bg-[#b08b38] font-medium flex items-center justify-center gap-2"
+          >
+            <span>Go to Vendor Dashboard</span>
+            <ArrowRight className="h-4 w-4" />
+          </Button>
 
-          <Link href="/dashboard/vendor/services" className="flex-1">
-            <Button
-              variant="outline"
-              className="w-full h-11 rounded-full border-[#e7e0d3] dark:border-[#383124]"
-            >
-              View My Services
-            </Button>
-          </Link>
+          <Button
+            onClick={() => {
+              window.location.href = "/dashboard/vendor/services";
+            }}
+            variant="outline"
+            className="flex-1 h-11 rounded-full border-[#e7e0d3] dark:border-[#383124]"
+          >
+            View My Services
+          </Button>
         </div>
       </div>
     </div>

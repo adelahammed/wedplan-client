@@ -135,18 +135,24 @@ function CustomerBookingsContent() {
     {
       id: "pending",
       label: "Pending Bookings",
-      count: bookings.filter((b) => (b.status || "pending").toLowerCase() === "pending").length,
+      count: bookings.filter(
+        (b) => (b.status || "pending").toLowerCase() === "pending",
+      ).length,
     },
     {
       id: "accepted",
       label: "Accepted Bookings",
-      count: bookings.filter((b) => (b.status || "").toLowerCase() === "accepted").length,
+      count: bookings.filter(
+        (b) => (b.status || "").toLowerCase() === "accepted",
+      ).length,
     },
     {
       id: "rejected",
       label: "Rejected Bookings",
       count: bookings.filter(
-        (b) => (b.status || "").toLowerCase() === "rejected" || (b.status || "").toLowerCase() === "cancelled"
+        (b) =>
+          (b.status || "").toLowerCase() === "rejected" ||
+          (b.status || "").toLowerCase() === "cancelled",
       ).length,
     },
   ];
@@ -162,7 +168,8 @@ function CustomerBookingsContent() {
             My Wedding Bookings
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Review status updates and event schedules for your booked wedding vendors.
+            Review status updates and event schedules for your booked wedding
+            vendors.
           </p>
         </div>
         <Link href="/services">
@@ -179,7 +186,9 @@ function CustomerBookingsContent() {
             type="button"
             onClick={() => {
               setActiveFilter(tab.id);
-              router.push(`/dashboard/customer/bookings?status=${tab.id}`, { scroll: false });
+              router.push(`/dashboard/customer/bookings?status=${tab.id}`, {
+                scroll: false,
+              });
             }}
             className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
               activeFilter === tab.id
@@ -222,7 +231,8 @@ function CustomerBookingsContent() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredBookings.map((b) => {
-            const isPending = (b.status || "pending").toLowerCase() === "pending";
+            const isPending =
+              (b.status || "pending").toLowerCase() === "pending";
             const isAccepted = (b.status || "").toLowerCase() === "accepted";
             const isCancelled = (b.status || "").toLowerCase() === "cancelled";
             const isRejected = (b.status || "").toLowerCase() === "rejected";
@@ -251,8 +261,8 @@ function CustomerBookingsContent() {
                           isAccepted
                             ? "bg-emerald-600 text-white"
                             : isCancelled || isRejected
-                            ? "bg-red-600 text-white"
-                            : "bg-amber-500 text-white"
+                              ? "bg-red-600 text-white"
+                              : "bg-amber-500 text-white"
                         }`}
                       >
                         {b.status ? b.status.toUpperCase() : "PENDING"}
@@ -297,7 +307,9 @@ function CustomerBookingsContent() {
                       <p className="font-semibold text-zinc-800 dark:text-zinc-200 mt-0.5">
                         {b.vendorName || "Wedding Vendor"}
                       </p>
-                      <p className="text-zinc-500 text-[11px]">{b.vendorEmail || ""}</p>
+                      <p className="text-zinc-500 text-[11px]">
+                        {b.vendorEmail || ""}
+                      </p>
                     </div>
 
                     {b.message && (
@@ -308,7 +320,7 @@ function CustomerBookingsContent() {
                   </div>
                 </div>
 
-                <div className="p-5 pt-0 border-t border-[#f0ebe1] dark:border-[#2e281d] mt-2 flex items-center justify-between gap-2">
+                <div className="p-5 pt-0  border-[#f0ebe1] dark:border-[#2e281d] mt-2 flex items-center justify-between gap-2">
                   <Link
                     href={`/services/${b.serviceId}`}
                     className="text-xs font-semibold text-[#C39C45] hover:underline flex items-center gap-1"
@@ -353,10 +365,7 @@ export default function CustomerBookingsPage() {
     <React.Suspense
       fallback={
         <div className="py-24">
-          <UILoader
-            message="Loading Bookings"
-            subtext="Please wait..."
-          />
+          <UILoader message="Loading Bookings" subtext="Please wait..." />
         </div>
       }
     >

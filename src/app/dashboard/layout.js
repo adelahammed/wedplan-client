@@ -131,8 +131,11 @@ export default function DashboardLayout({ children }) {
         <Button
           onClick={async () => {
             removeStoredToken();
+            if (typeof window !== "undefined") {
+              localStorage.removeItem("wedplan_oauth_role");
+            }
             await signOut();
-            router.push("/");
+            window.location.href = "/";
           }}
           className="mt-6 rounded-full bg-[#C39C45] text-white"
         >
@@ -199,8 +202,11 @@ export default function DashboardLayout({ children }) {
             type="button"
             onClick={async () => {
               removeStoredToken();
+              if (typeof window !== "undefined") {
+                localStorage.removeItem("wedplan_oauth_role");
+              }
               await signOut();
-              router.push("/");
+              window.location.href = "/";
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-600 hover:text-red-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition"
           >

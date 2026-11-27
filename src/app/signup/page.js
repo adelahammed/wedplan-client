@@ -131,8 +131,13 @@ export default function SignUpPage() {
     }
 
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const formUser = Object.fromEntries(formData.entries());
+    form.reset();
+    setPassword("");
+    handleRemoveImage();
+    setRole("Customer");
 
     const params = new URLSearchParams(window.location.search);
     const callback = params.get("callbackUrl");

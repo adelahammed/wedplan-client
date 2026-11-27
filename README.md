@@ -7,6 +7,7 @@
 ## Important Features
 
 ### Customer Experience
+
 - **Browse & Search Services**: Discover curated wedding services with real-time text search, location filtering, and category browsing.
 - **Price Sorting & Filtering**: Sort service packages ascending and descending by rate.
 - **Service Details & High-Res Galleries**: Interactive image carousels with package inclusions and verified vendor profiles.
@@ -15,6 +16,7 @@
 - **Personal Profile Management**: Update personal bridal details, location, and wedding vision.
 
 ### Vendor Experience
+
 - **Dedicated Business Suite**: View published offerings, active services, and incoming client requests.
 - **Add New Wedding Packages**: Multi-image file uploading up to 5 photos via ImgBB integration, rate configuration, and service descriptions.
 - **Manage Service Availability**: One-click pause and activate toggles, in-line package editing, and deletion.
@@ -23,6 +25,7 @@
 - **Business Profile Management**: Manage studio logo, contact channels, operating location, and bio.
 
 ### Administrator Experience
+
 - **System Metrics & Analytics**: Aggregated counters for total registered users, vendors, customers, services, pending approvals, and transactions.
 - **User Directory Governance**: Search and filter registered members by role, view detailed account histories, and block/unblock accounts.
 - **Catalog Moderation Queue**: Review submitted packages, approve pending services to make them public, reject unsuitable submissions, and remove violations.
@@ -31,6 +34,7 @@
 ---
 
 ## Technology Stack
+
 - **Frontend Framework**: Next.js 16 (App Router)
 - **UI & Components**: React 19, Tailwind CSS v4, Radix UI / Shadcn UI, Lucide Icons, Sonner Toasts
 - **Animations**: Framer Motion
@@ -41,45 +45,8 @@
 
 ---
 
-## Installation Instructions
-
-1. Clone the repository:
-```bash
-git clone https://github.com/adelahammed/wedplan-client.git
-cd wedplan-client
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Configure Environment Variables:
-Create a `.env` file in the root directory:
-```env
-BETTER_AUTH_SECRET=your_better_auth_secret
-BETTER_AUTH_URL=http://localhost:3000
-NEXT_PUBLIC_SERVER_URL=http://localhost:5000
-MONGODB_URL=your_mongodb_connection_string
-GOOGLE_CLIENT_ID=your_google_oauth_client_id
-GOOGLE_SECRET=your_google_oauth_secret
-NEXT_PUBLIC_IMAGEBB_API=your_imgbb_api_key
-```
-
----
-
-## How to Run the Project Locally
-
-Run the development server:
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
 ## Repository & Deployment Links
+
 - **Client Repository**: [https://github.com/adelahammed/wedplan-client](https://github.com/adelahammed/wedplan-client)
 - **Server Repository**: [https://github.com/adelahammed/wedplan-server](https://github.com/adelahammed/wedplan-server)
-- **Live Website**: [https://wedplan-client.vercel.app](https://wedplan-client.vercel.app)
+- **Live Website**: [https://wedplan-client-omega-nine.vercel.app/](https://wedplan-client-omega-nine.vercel.app/)
