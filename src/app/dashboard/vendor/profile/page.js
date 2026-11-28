@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ButtonLoader } from "@/components/ui-loader";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function VendorProfileSettingsPage() {
   const { data: session } = useSession();
@@ -17,7 +18,7 @@ export default function VendorProfileSettingsPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const fileInputRef = React.useRef(null);
-
+  const router = useRouter();
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
@@ -133,6 +134,7 @@ export default function VendorProfileSettingsPage() {
         toast.success(
           "Vendor profile and business details updated successfully!",
         );
+        router.refresh();
       } else {
         toast.error("Failed to update profile settings");
       }

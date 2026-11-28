@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ButtonLoader } from "@/components/ui-loader";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function CustomerProfileSettingsPage() {
   const { data: session } = useSession();
@@ -17,6 +18,7 @@ export default function CustomerProfileSettingsPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const fileInputRef = React.useRef(null);
+  const router = useRouter();
 
   const [formData, setFormData] = React.useState({
     name: "",
@@ -125,6 +127,7 @@ export default function CustomerProfileSettingsPage() {
       );
       if (res.ok) {
         toast.success("Profile settings updated successfully!");
+        router.refresh();
       } else {
         toast.error("Failed to update profile settings");
       }

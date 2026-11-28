@@ -45,8 +45,49 @@
 
 ---
 
+## Installation Instructions
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/adelahammed/wedplan-client.git
+cd wedplan-client
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Configure Environment Variables:
+   Create a `.env` file in the root directory:
+
+```env
+BETTER_AUTH_SECRET=your_better_auth_secret
+BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_SERVER_URL=http://localhost:5000
+MONGODB_URL=your_mongodb_connection_string
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_SECRET=your_google_oauth_secret
+NEXT_PUBLIC_IMAGEBB_API=your_imgbb_api_key
+```
+
+---
+
+## How to Run the Project Locally
+
+Run the development server:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
 ## Repository & Deployment Links
 
 - **Client Repository**: [https://github.com/adelahammed/wedplan-client](https://github.com/adelahammed/wedplan-client)
 - **Server Repository**: [https://github.com/adelahammed/wedplan-server](https://github.com/adelahammed/wedplan-server)
-- **Live Website**: [https://wedplan-client-omega-nine.vercel.app/](https://wedplan-client-omega-nine.vercel.app/)
