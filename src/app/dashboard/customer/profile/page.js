@@ -128,6 +128,7 @@ export default function CustomerProfileSettingsPage() {
       if (res.ok) {
         toast.success("Profile settings updated successfully!");
         router.refresh();
+        window.location.reload();
       } else {
         toast.error("Failed to update profile settings");
       }

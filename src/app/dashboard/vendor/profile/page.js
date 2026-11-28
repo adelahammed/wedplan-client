@@ -135,6 +135,7 @@ export default function VendorProfileSettingsPage() {
           "Vendor profile and business details updated successfully!",
         );
         router.refresh();
+        window.location.reload();
       } else {
         toast.error("Failed to update profile settings");
       }
